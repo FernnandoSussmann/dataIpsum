@@ -162,17 +162,17 @@ def _table_limit_errors(table_index: int, table: object) -> list[ValidationError
     return errors
 
 
-def _document_limit_errors(data: object) -> list[ValidationError]:
-    if not isinstance(data, dict):
+def _document_limit_errors(parsed_document: object) -> list[ValidationError]:
+    if not isinstance(parsed_document, dict):
         return [ValidationError(path="$", message="o documento precisa ser um mapeamento (objeto)")]
     errors: list[ValidationError] = []
-    if _max_depth(data) > MAX_DEPTH:
+    if _max_depth(parsed_document) > MAX_DEPTH:
         errors.append(
             ValidationError(
                 path="$", message=f"profundidade do documento excede o limite de {MAX_DEPTH} níveis"
             )
         )
-    tables = data.get("tables")
+    tables = parsed_document.get("tables")
     if isinstance(tables, list):
         if len(tables) > MAX_TABLES:
             errors.append(
@@ -208,12 +208,14 @@ def load_schema(source: Path | str | dict[str, object]) -> Schema:
     Camada 1 (limites do documento) e camada 2 (estrutura, Pydantic), acumulando
     todos os erros de cada camada antes de lançar `SchemaError`.
     """
-    data = _read_source(source)
-    layer_1_errors = _document_limit_errors(data) + _scan_forbidden_secrets(data)
+    parsed_document = _read_source(source)
+    layer_1_errors = _document_limit_errors(parsed_document) + _scan_forbidden_secrets(
+        parsed_document
+    )
     if layer_1_errors:
         raise SchemaError(layer_1_errors)
     try:
-        return Schema.model_validate(data)
+        return Schema.model_validate(parsed_document)
     except PydanticValidationError as exc:
         raise SchemaError([_convert_pydantic_error(error) for error in exc.errors()]) from exc
 

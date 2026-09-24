@@ -1,0 +1,19 @@
+# Seed ausente (DD-00 §3.6 "Seed ausente", §7.2): sorteada com
+# secrets.randbits(63) e gravada no manifesto como seed_source: "random".
+#
+#   uv run dataipsum generate --schema examples/core/sem-seed.yaml --out /tmp/saida
+#   cat /tmp/saida/_manifest.json | python -c 'import json,sys; d=json.load(sys.stdin); print(d["seed"], d["seed_source"])'
+#   # -> <inteiro entre 0 e 2**63-1> random
+#
+# Rodar de novo (num diretório de saída novo) sorteia uma seed diferente; para
+# reproduzir uma execução específica, copie a seed do manifesto para o campo
+# `seed` de um novo schema (veja seed-fixa.yaml).
+version: 1
+name: sem_seed
+tables:
+  - name: usuarios
+    rows: 100
+    primary_key: {columns: [id], strategy: sequence, start: 1}
+    columns:
+      - {name: id, type: int}
+      - {name: nome, type: nome_proprio, max_length: 120}
