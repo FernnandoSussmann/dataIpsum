@@ -4,6 +4,8 @@ from __future__ import annotations
 
 import subprocess
 import sys
+import tempfile
+from pathlib import Path
 
 from check_security_exceptions import (
     DEFAULT_PATH,
@@ -29,11 +31,27 @@ def main() -> int:
         text=True,
     )
     ignore_args = pip_audit_ignore_args(exceptions)
-    audit = subprocess.run(
-        ["uv", "run", "pip-audit", "--strict", "-r", "-", *ignore_args],
-        input=export.stdout,
-        text=True,
-    )
+    with tempfile.TemporaryDirectory() as tmp_dir:
+        requirements_path = Path(tmp_dir) / "requirements.txt"
+        requirements_path.write_text(export.stdout, encoding="utf-8")
+        audit = subprocess.run(
+            [
+                "uv",
+                "run",
+                "pip-audit",
+                "--strict",
+                # `uv export` já resolveu a árvore de dependências inteira e travada
+                # (uv.lock); pedir para o pip-audit resolver de novo via pip criaria
+                # um venv efêmero desnecessário (e indisponível sem python3-venv).
+                # `-r -` (stdin) não é aceito por esta versão do pip-audit, por isso
+                # o arquivo temporário.
+                "--disable-pip",
+                "--no-deps",
+                "-r",
+                str(requirements_path),
+                *ignore_args,
+            ]
+        )
     return audit.returncode
 
 
