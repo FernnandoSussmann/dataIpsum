@@ -1,0 +1,22 @@
+# Contexto de build da imagem dataIpsum (DD-00 §3.12.1).
+#
+# `.env*` é DELIBERADAMENTE deixado de fora desta lista: ele não é ignorado, para que
+# segredos locais que por descuido acabem versionados nunca sejam silenciosamente
+# incluídos no contexto sem que ninguém perceba que a exclusão "protegeria" por engano.
+# Não crie `.env*` na raiz do projeto sem revisar o que entra no contexto de build.
+
+.git
+.venv
+**/__pycache__
+*.pyc
+tests/
+design_docs/
+docs/
+examples/
+out/
+.claude/
+.agents/
+.hermes/
+*.parquet
+*.csv
+*.jsonl
