@@ -13,14 +13,14 @@ from pathlib import Path
 from unittest.mock import patch
 
 import pytest
-from dataipsum.config import RunOptions
 
 from dataipsum import api
+from dataipsum.config import RunOptions, SinkConfig
 from dataipsum.errors import OutputDirError
 
 
 def _run_options(out_dir: Path) -> RunOptions:
-    return RunOptions(out_dir=out_dir)
+    return RunOptions(out_dir=out_dir, sink=SinkConfig(kind="parquet"))
 
 
 # --- load_schema / validate: delegação ---------------------------------------

@@ -14,4 +14,14 @@
 #       justification: "Falso positivo: função vulnerável não é chamada pelo dataIpsum."
 #       owner: "fernando"
 #       expires: "2026-12-31"
-exceptions: []
+exceptions:
+  - id: B506
+    tool: bandit
+    justification: >
+      Falso positivo: dataipsum.schema.loader._NoAliasSafeLoader subclassa
+      yaml.SafeLoader (mesma resolução restrita de tags do YAML seguro) e só
+      sobrescreve compose_node para rejeitar âncoras/aliases (§3.3, §6.1).
+      Bandit reconhece apenas os nomes literais SafeLoader/CSafeLoader como
+      seguros e não subclasses customizadas.
+    owner: "dataipsum-core"
+    expires: "2027-12-31"

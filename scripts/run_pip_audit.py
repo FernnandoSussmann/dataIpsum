@@ -23,7 +23,7 @@ def main() -> int:
 
     exceptions, _ = parse_exceptions(load_raw_exceptions(DEFAULT_PATH))
     export = subprocess.run(
-        ["uv", "export", "--frozen", "--no-hashes", "--all-extras"],
+        ["uv", "export", "--frozen", "--no-hashes", "--all-extras", "--no-emit-project"],
         check=True,
         capture_output=True,
         text=True,

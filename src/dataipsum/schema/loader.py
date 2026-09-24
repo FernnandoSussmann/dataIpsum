@@ -62,7 +62,9 @@ class _NoAliasSafeLoader(yaml.SafeLoader):
 
 def _safe_yaml_load(text: str) -> object:
     try:
-        return yaml.load(text, Loader=_NoAliasSafeLoader)
+        # _NoAliasSafeLoader subclassa SafeLoader e só endurece a rejeição de
+        # âncoras/aliases; exceção B506 registrada em security/exceptions.yaml.
+        return yaml.load(text, Loader=_NoAliasSafeLoader)  # nosec B506
     except yaml.YAMLError as exc:
         raise SchemaError([ValidationError(path="$", message=f"YAML inválido: {exc}")]) from exc
 
