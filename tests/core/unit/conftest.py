@@ -1,0 +1,99 @@
+"""Fixtures compartilhadas dos testes unitários do núcleo (DD-00)."""
+
+from __future__ import annotations
+
+FULL_EXAMPLE: dict[str, object] = {
+    "version": 1,
+    "name": "loja",
+    "seed": 42,
+    "locale": "pt_BR",
+    "chunk_size": 10000,
+    "limits": {"max_rows_total": 100000000},
+    "llm": {
+        "default_provider": "local",
+        "providers": {
+            "local": {
+                "kind": "ollama",
+                "base_url": "http://ollama:11434",
+                "model": "llama3.1:8b",
+                "max_concurrency": 2,
+                "timeout_s": 120,
+                "temperature": 0,
+            },
+            "nuvem": {
+                "kind": "anthropic",
+                "model": "modelo-x",
+                "api_key_env": "ANTHROPIC_API_KEY",
+                "max_concurrency": 4,
+            },
+        },
+        "retry": {"max_attempts": 5, "base_delay_s": 1, "max_delay_s": 60},
+    },
+    "tables": [
+        {
+            "name": "usuarios",
+            "rows": 1000,
+            "primary_key": {"columns": ["id"], "strategy": "sequence", "start": 1},
+            "columns": [
+                {"name": "id", "type": "int"},
+                {"name": "nome", "type": "nome_proprio", "max_length": 120},
+                {"name": "cpf", "type": "cpf", "format": "masked", "invalid_ratio": 0.02},
+                {"name": "bio", "type": "string", "max_length": 200, "null_ratio": 0.1},
+                {
+                    "name": "criado_em",
+                    "type": "timestamp",
+                    "params": {"min": "2024-01-01T00:00:00Z", "max": "2025-12-31T23:59:59Z"},
+                },
+            ],
+        },
+        {
+            "name": "produtos",
+            "rows": 200,
+            "primary_key": {"columns": ["id"], "strategy": "seeded_uuid"},
+            "columns": [
+                {"name": "id", "type": "uuid"},
+                {"name": "titulo", "type": "string", "max_length": 80},
+                {
+                    "name": "preco",
+                    "type": "decimal",
+                    "params": {"precision": 10, "scale": 2, "min": "1.00", "max": "5000.00"},
+                },
+            ],
+        },
+        {
+            "name": "pedidos",
+            "primary_key": {"columns": ["id"], "strategy": "sequence"},
+            "rows_from": {
+                "via": "usuario_id",
+                "relation": "one_to_many",
+                "cardinality": {"range": {"min": 0, "max": 5}},
+            },
+            "columns": [
+                {"name": "id", "type": "int"},
+                {"name": "usuario_id", "type": "ref", "params": {"table": "usuarios"}},
+                {
+                    "name": "produto_id",
+                    "type": "ref",
+                    "params": {
+                        "table": "produtos",
+                        "distribution": {"zipf": {"s": 1.1}},
+                    },
+                },
+                {
+                    "name": "comentario",
+                    "type": "llm_post",
+                    "max_length": 500,
+                    "params": {
+                        "provider": "local",
+                        "prompt": "Escreva um comentário curto sobre o produto.",
+                        "mode": "pool",
+                        "pool_size": 50,
+                        "toxicity": "ratio",
+                        "toxicity_ratio": 0.05,
+                        "on_failure": "pending",
+                    },
+                },
+            ],
+        },
+    ],
+}
