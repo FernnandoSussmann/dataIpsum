@@ -1,0 +1,107 @@
+# Quality gates e segurança (DD-00 §3.2.1). Hooks Python são locais e usam `uv run`,
+# com as versões travadas no uv.lock. Hooks de terceiros têm `rev` fixo.
+#
+# Instalação: uv run pre-commit install --hook-type pre-commit --hook-type pre-push
+
+repos:
+  - repo: local
+    hooks:
+      - id: ruff-check
+        name: ruff-check
+        entry: uv run ruff check .
+        language: system
+        pass_filenames: false
+        types: [python]
+        stages: [pre-commit]
+
+      - id: ruff-format
+        name: ruff-format
+        entry: uv run ruff format --check .
+        language: system
+        pass_filenames: false
+        types: [python]
+        stages: [pre-commit]
+
+      - id: mypy
+        name: mypy
+        entry: uv run mypy --strict src
+        language: system
+        pass_filenames: false
+        types: [python]
+        stages: [pre-commit]
+
+      - id: pytest-unit
+        name: pytest-unit
+        entry: >-
+          uv run pytest -m "not integration and not slow and not ray and not docker"
+          --cov --cov-fail-under=85
+        language: system
+        pass_filenames: false
+        types: [python]
+        stages: [pre-commit]
+
+      - id: bandit
+        name: bandit
+        entry: uv run bandit -r src -c pyproject.toml -ll
+        language: system
+        pass_filenames: false
+        types: [python]
+        stages: [pre-commit]
+
+      - id: semgrep
+        name: semgrep
+        entry: >-
+          uv run semgrep scan --config p/owasp-top-ten --config p/python
+          --error --metrics=off src
+        language: system
+        pass_filenames: false
+        types: [python]
+        stages: [pre-commit]
+
+      - id: pip-audit
+        name: pip-audit
+        entry: uv run python scripts/run_pip_audit.py
+        language: system
+        pass_filenames: false
+        stages: [pre-commit]
+
+      - id: security-exceptions
+        name: security-exceptions
+        entry: uv run python scripts/check_security_exceptions.py
+        language: system
+        pass_filenames: false
+        stages: [pre-commit]
+
+      - id: dockerfile-render
+        name: dockerfile-render
+        entry: uv run python scripts/render_dockerfile.py --check
+        language: system
+        pass_filenames: false
+        stages: [pre-commit]
+
+      - id: pytest-integration
+        name: pytest-integration
+        entry: uv run pytest -m "integration or slow"
+        language: system
+        pass_filenames: false
+        types: [python]
+        stages: [pre-push]
+
+      - id: owasp-dependency-check
+        name: owasp-dependency-check
+        entry: uv run python scripts/run_dependency_check.py
+        language: system
+        pass_filenames: false
+        stages: [pre-push]
+
+  - repo: https://github.com/gitleaks/gitleaks
+    rev: v8.21.2
+    hooks:
+      - id: gitleaks
+        stages: [pre-commit]
+
+  - repo: https://github.com/AleksaC/hadolint-py
+    rev: v2.12.1b3
+    hooks:
+      - id: hadolint
+        stages: [pre-commit]

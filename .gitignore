@@ -3,3 +3,25 @@
 .hermes
 skills-lock.json
 
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.eggs/
+.venv/
+.mypy_cache/
+.ruff_cache/
+.pytest_cache/
+.coverage
+.coverage.*
+htmlcov/
+
+# uv
+.python-version
+
+# dataIpsum runtime output
+out/
+_manifest.json
+
+# Security scan artifacts
+.dependency-check/
