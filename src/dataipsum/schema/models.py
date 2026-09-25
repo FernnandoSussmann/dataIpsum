@@ -162,6 +162,25 @@ class TableSpec(BaseModel):
             raise ValueError(f"nomes de coluna duplicados: {duplicates}")
         return self
 
+    @model_validator(mode="after")
+    def _check_null_ratio_zero_on_pk_and_via(self) -> TableSpec:
+        columns_by_name = {column.name: column for column in self.columns}
+        violating_pk_columns = [
+            name
+            for name in self.primary_key.columns
+            if name in columns_by_name and columns_by_name[name].null_ratio != 0
+        ]
+        if violating_pk_columns:
+            raise ValueError(
+                f"null_ratio deve ser 0 em colunas de chave primária: {violating_pk_columns}"
+            )
+        rows_from = self.rows_from
+        if rows_from is not None:
+            via_column = columns_by_name.get(rows_from.via)
+            if via_column is not None and via_column.null_ratio != 0:
+                raise ValueError(f"null_ratio deve ser 0 na coluna 'via' ('{rows_from.via}')")
+        return self
+
 
 class RetryConfig(BaseModel):
     model_config = ConfigDict(extra="forbid")

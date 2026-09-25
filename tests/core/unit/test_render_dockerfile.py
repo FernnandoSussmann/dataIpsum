@@ -169,3 +169,11 @@ def test_main_rejeita_fragmento_com_instrucao_proibida(
     )
     assert main([], repo_root=root) != 0
     assert "USER" in capsys.readouterr().err
+
+
+def test_dockerignore_exclui_env_para_segredos_locais_nunca_entrarem_no_contexto() -> None:
+    """DD-00 §3.12.1: `.env*` fica excluído para que segredos locais nunca entrem
+    no contexto de build (não confundir com "fica de fora da lista de exclusão")."""
+    repo_root = Path(__file__).resolve().parents[3]
+    patterns = (repo_root / ".dockerignore").read_text(encoding="utf-8").splitlines()
+    assert ".env*" in patterns

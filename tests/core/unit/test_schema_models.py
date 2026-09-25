@@ -138,6 +138,48 @@ def test_cardinality_range_min_maior_que_max_e_invalido() -> None:
         CardinalityRange(min=5, max=1)
 
 
+# --- null_ratio == 0 em PK e na coluna `via` (§3.3) -------------------------
+
+
+def test_null_ratio_diferente_de_zero_em_coluna_de_pk_e_invalido() -> None:
+    with pytest.raises(PydanticValidationError, match="chave primária"):
+        TableSpec(
+            name="t",
+            rows=10,
+            primary_key=PrimaryKeySpec(columns=["id"], strategy="sequence"),
+            columns=[_column("id", "int", null_ratio=0.1)],
+        )
+
+
+def test_null_ratio_zero_em_coluna_de_pk_e_valido() -> None:
+    _table("t", [_column("id", "int", null_ratio=0.0)])
+
+
+def test_null_ratio_diferente_de_zero_na_coluna_via_e_invalido() -> None:
+    with pytest.raises(PydanticValidationError, match="via"):
+        TableSpec(
+            name="pedidos",
+            rows_from=RowsFromSpec(via="usuario_id", relation="one_to_many"),
+            primary_key=PrimaryKeySpec(columns=["id"], strategy="sequence"),
+            columns=[
+                _column("id", "int"),
+                _column("usuario_id", "ref", null_ratio=0.2, params={"table": "usuarios"}),
+            ],
+        )
+
+
+def test_null_ratio_zero_na_coluna_via_e_valido() -> None:
+    TableSpec(
+        name="pedidos",
+        rows_from=RowsFromSpec(via="usuario_id", relation="one_to_many"),
+        primary_key=PrimaryKeySpec(columns=["id"], strategy="sequence"),
+        columns=[
+            _column("id", "int"),
+            _column("usuario_id", "ref", params={"table": "usuarios"}),
+        ],
+    )
+
+
 def test_thread_so_e_valido_com_relation_thread() -> None:
     with pytest.raises(PydanticValidationError, match="thread"):
         TableSpec(
