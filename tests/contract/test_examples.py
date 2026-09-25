@@ -35,7 +35,9 @@ _EXTRA_BY_PATH_COMPONENT = {"postgres": "psycopg", "mysql": "pymysql", "kafka": 
 
 
 def _example_yaml_files() -> list[Path]:
-    return sorted(EXAMPLES_DIR.rglob("*.yaml")) + sorted(EXAMPLES_DIR.rglob("*.yml"))
+    # Só `*.yaml`: `examples/**` também tem `docker-compose.yml` (trilhas E/G), que
+    # não são schemas dataIpsum (H.3.4 fala especificamente de `examples/**/*.yaml`).
+    return sorted(EXAMPLES_DIR.rglob("*.yaml"))
 
 
 def _required_extras(document: object, path: Path) -> set[str]:

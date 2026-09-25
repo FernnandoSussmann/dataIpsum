@@ -187,13 +187,22 @@ class KafkaSink:
 
 
 def _create_topic_if_missing(options: Mapping[str, object], topic: str) -> None:
-    from confluent_kafka.admin import AdminClient, NewTopic
+    import confluent_kafka.admin as kafka_admin
 
-    admin_client = AdminClient({"bootstrap.servers": str(options.get("bootstrap_servers", ""))})
+    # `NewTopic` não está no __all__ do stub de `confluent_kafka.admin`, embora exista em
+    # runtime; o cast evita depender de checagem de atributo contra o stub de terceiros.
+    admin_module = cast(Any, kafka_admin)
+    admin_client = admin_module.AdminClient(
+        {"bootstrap.servers": str(options.get("bootstrap_servers", ""))}
+    )
     partitions = int(cast(int, options.get("partitions", 1)))
     replication_factor = int(cast(int, options.get("replication_factor", 1)))
     futures = admin_client.create_topics(
-        [NewTopic(topic, num_partitions=partitions, replication_factor=replication_factor)]
+        [
+            admin_module.NewTopic(
+                topic, num_partitions=partitions, replication_factor=replication_factor
+            )
+        ]
     )
     for future in futures.values():
         try:

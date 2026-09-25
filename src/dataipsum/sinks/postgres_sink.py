@@ -46,7 +46,7 @@ def _qualified(db_schema: str, table_name: str) -> str:
 def _connect(options: Mapping[str, object]) -> Any:
     connection_options = resolve_connection_options(options)
 
-    import psycopg  # type: ignore[import-not-found]
+    import psycopg
 
     if connection_options.dsn is not None:
         connection = psycopg.connect(connection_options.dsn, sslmode=connection_options.sslmode)
@@ -83,7 +83,8 @@ def select_control_status(
     cursor: Any, db_schema: str, run_id: str, table_name: str, chunk_id: int
 ) -> str | None:
     cursor.execute(
-        f"SELECT status FROM {_qualified(db_schema, CONTROL_TABLE_NAME)} "
+        # Identificadores validados pela regex do DD-00 e quotados; valores por parâmetros.
+        f"SELECT status FROM {_qualified(db_schema, CONTROL_TABLE_NAME)} "  # nosec B608
         "WHERE run_id = %s AND table_name = %s AND chunk_id = %s",
         (run_id, table_name, chunk_id),
     )
@@ -96,7 +97,8 @@ def _upsert_control_row(
 ) -> None:
     qualified = _qualified(db_schema, CONTROL_TABLE_NAME)
     cursor.execute(
-        f"INSERT INTO {qualified} (run_id, table_name, chunk_id, status, rows, committed_at) "
+        # Identificador fixo (CONTROL_TABLE_NAME), quotado; valores por parâmetros.
+        f"INSERT INTO {qualified} (run_id, table_name, chunk_id, status, rows, committed_at) "  # nosec B608
         "VALUES (%s, %s, %s, 'committed', %s, now()) "
         "ON CONFLICT (run_id, table_name, chunk_id) "
         "DO UPDATE SET status = 'committed', rows = EXCLUDED.rows, committed_at = now()",
@@ -122,7 +124,8 @@ def _replace_placeholder_rows(
     qualified = _qualified(db_schema, table.name)
     set_clause = ", ".join(f"{_quote_ident(name)} = %s" for name in update_columns)
     where_clause = " AND ".join(f"{_quote_ident(name)} = %s" for name in table.primary_key.columns)
-    statement = f"UPDATE {qualified} SET {set_clause} WHERE {where_clause}"
+    # Identificadores validados pela regex do DD-00 e quotados acima; valores por parâmetros.
+    statement = f"UPDATE {qualified} SET {set_clause} WHERE {where_clause}"  # nosec B608
     rows = batch.to_pylist()
     parameters = [
         tuple(row[name] for name in update_columns) + primary_key_values(table, row) for row in rows

@@ -25,3 +25,17 @@ exceptions:
       seguros e não subclasses customizadas.
     owner: "dataipsum-core"
     expires: "2027-12-31"
+
+  - id: B608
+    tool: bandit
+    justification: >
+      Falso positivo nos sinks postgres/mysql (DD-02, trilha E, E.5.3):
+      identificadores (schema/tabela/coluna) são sempre pré-validados pela regex
+      de identificador do DD-00 (§6.2) e quotados por `_quote_ident`/
+      `quote_identifier_backtick` antes de entrar na string SQL; valores nunca
+      são concatenados, sempre vão por parâmetros (`%s`) ou `COPY`. Já resolvido
+      pontualmente com `# nosec B608` em cada ocorrência
+      (src/dataipsum/sinks/{postgres,mysql}_sink.py); esta entrada só documenta
+      a justificativa central exigida pelo guardrail de exceções de segurança.
+    owner: "dataipsum-core"
+    expires: "2027-12-31"

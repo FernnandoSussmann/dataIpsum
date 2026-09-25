@@ -41,7 +41,7 @@ def _qualified(table_name: str) -> str:
 def _connect(options: Mapping[str, object]) -> Any:
     connection_options = resolve_connection_options(options)
 
-    import pymysql  # type: ignore[import-untyped]
+    import pymysql
 
     host, port, database, user = (
         connection_options.host,
@@ -87,7 +87,8 @@ def _create_table_if_missing(cursor: Any, table: TableSpec) -> None:
 
 def select_control_status(cursor: Any, run_id: str, table_name: str, chunk_id: int) -> str | None:
     cursor.execute(
-        f"SELECT status FROM {_qualified(CONTROL_TABLE_NAME)} "
+        # Identificador fixo (CONTROL_TABLE_NAME); valores sempre por parâmetros (E.5.3).
+        f"SELECT status FROM {_qualified(CONTROL_TABLE_NAME)} "  # nosec B608
         "WHERE run_id = %s AND table_name = %s AND chunk_id = %s",
         (run_id, table_name, chunk_id),
     )
@@ -99,7 +100,8 @@ def _upsert_control_row(
     cursor: Any, run_id: str, table_name: str, chunk_id: int, rows: int
 ) -> None:
     cursor.execute(
-        f"INSERT INTO {_qualified(CONTROL_TABLE_NAME)} "
+        # Identificador fixo (CONTROL_TABLE_NAME); valores sempre por parâmetros (E.5.3).
+        f"INSERT INTO {_qualified(CONTROL_TABLE_NAME)} "  # nosec B608
         "(run_id, table_name, chunk_id, status, rows, committed_at) "
         "VALUES (%s, %s, %s, 'committed', %s, NOW(3)) "
         "ON DUPLICATE KEY UPDATE status = 'committed', rows = VALUES(rows), "
@@ -112,7 +114,9 @@ def _insert_rows(cursor: Any, table: TableSpec, batch: pa.RecordBatch) -> None:
     column_names = batch.schema.names
     columns_sql = ", ".join(quote_identifier_backtick(name) for name in column_names)
     placeholders = ", ".join(["%s"] * len(column_names))
-    statement = f"INSERT INTO {_qualified(table.name)} ({columns_sql}) VALUES ({placeholders})"
+    # `table.name` já foi validado pela regex de identificador do DD-00 (E.5.3); valores
+    # sempre por parâmetros.
+    statement = f"INSERT INTO {_qualified(table.name)} ({columns_sql}) VALUES ({placeholders})"  # nosec B608
     rows = [tuple(row[name] for name in column_names) for row in batch.to_pylist()]
     for batch_of_rows in batched(rows, INSERT_BATCH_SIZE):
         cursor.executemany(statement, batch_of_rows)
@@ -126,7 +130,8 @@ def _replace_placeholder_rows(cursor: Any, table: TableSpec, batch: pa.RecordBat
     where_clause = " AND ".join(
         f"{quote_identifier_backtick(name)} = %s" for name in table.primary_key.columns
     )
-    statement = f"UPDATE {_qualified(table.name)} SET {set_clause} WHERE {where_clause}"
+    # `table.name` e as colunas já vêm quotadas/validadas acima; valores por parâmetros.
+    statement = f"UPDATE {_qualified(table.name)} SET {set_clause} WHERE {where_clause}"  # nosec B608
     rows = batch.to_pylist()
     parameters = [
         tuple(row[name] for name in update_columns) + primary_key_values(table, row) for row in rows

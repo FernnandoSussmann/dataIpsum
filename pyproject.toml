@@ -95,7 +95,16 @@ python_version = "3.12"
 plugins = ["pydantic.mypy"]
 
 [[tool.mypy.overrides]]
-module = ["faker.*", "sqlglot.*", "confluent_kafka.*", "detoxify.*", "psutil.*", "pyarrow.*"]
+module = [
+    "faker.*",
+    "sqlglot.*",
+    "confluent_kafka.*",
+    "detoxify.*",
+    "psutil.*",
+    "pyarrow.*",
+    "psycopg.*",
+    "pymysql.*",
+]
 ignore_missing_imports = true
 
 [tool.pytest.ini_options]
