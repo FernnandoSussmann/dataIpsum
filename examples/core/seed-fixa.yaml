@@ -1,0 +1,20 @@
+# Seed explícita (DD-00 §3.6, §7.2): duas execuções com este schema produzem
+# exatamente os mesmos bytes de saída, em qualquer worker/ordem/chunk_size.
+#
+#   uv run dataipsum generate --schema examples/core/seed-fixa.yaml --out /tmp/saida-1
+#   uv run dataipsum generate --schema examples/core/seed-fixa.yaml --out /tmp/saida-2
+#   diff -r /tmp/saida-1 /tmp/saida-2   # sem diferenças
+#
+# (o comando `generate` é implementado pela trilha D; até lá, use
+# `dataipsum.validate`/`dataipsum.plan` para inspecionar este schema.)
+version: 1
+name: seed_fixa
+seed: 42
+tables:
+  - name: usuarios
+    rows: 100
+    primary_key: {columns: [id], strategy: sequence, start: 1}
+    columns:
+      - {name: id, type: int}
+      - {name: nome, type: nome_proprio, max_length: 120}
+      - {name: email, type: string, max_length: 120}

@@ -1,0 +1,27 @@
+# Exceções de segurança (DD-00 §3.2.1).
+#
+# Cada entrada precisa ter:
+#   id:            identificador do achado (CVE, regra do bandit/semgrep, etc.)
+#   tool:          bandit | semgrep | pip-audit | dependency-check
+#   justification: por que a exceção é segura/aceitável
+#   owner:         responsável pela exceção
+#   expires:       data de expiração, formato YYYY-MM-DD
+#
+# Exemplo:
+#   exceptions:
+#     - id: CVE-2024-00000
+#       tool: pip-audit
+#       justification: "Falso positivo: função vulnerável não é chamada pelo dataIpsum."
+#       owner: "fernando"
+#       expires: "2026-12-31"
+exceptions:
+  - id: B506
+    tool: bandit
+    justification: >
+      Falso positivo: dataipsum.schema.loader._NoAliasSafeLoader subclassa
+      yaml.SafeLoader (mesma resolução restrita de tags do YAML seguro) e só
+      sobrescreve compose_node para rejeitar âncoras/aliases (§3.3, §6.1).
+      Bandit reconhece apenas os nomes literais SafeLoader/CSafeLoader como
+      seguros e não subclasses customizadas.
+    owner: "dataipsum-core"
+    expires: "2027-12-31"

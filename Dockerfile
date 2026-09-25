@@ -1,0 +1,99 @@
+# syntax=docker/dockerfile:1
+#
+# Template da imagem dataIpsum (DD-00 §3.12). NÃO é o Dockerfile usado pelo `docker build`:
+# `scripts/render_dockerfile.py` monta o `Dockerfile` da raiz a partir deste template mais
+# os fragmentos de `docker/fragments/<área>.{build,runtime}.dockerfile`, na ordem fixa
+# `tipos, relacoes, llm, execucao, sinks, schema-io, cli-docker, contrato`.
+#
+# Pontos de extensão (cada um ocupa uma linha inteira, sem texto extra na linha):
+#   # @fragments build   -> estágio `build`, logo depois do primeiro `uv sync` (deps only),
+#                           antes de copiar `src/`. Uso típico: preload de modelos, pacotes
+#                           de SO necessários só para compilar/baixar algo com o venv pronto.
+#   # @fragments runtime -> estágio final, ANTES de `USER 10001`. Uso típico: criar
+#                           diretórios graváveis e ajustar dono/permissões.
+#
+# Cada trilha edita só o próprio par de fragmentos; ninguém edita este template nem o
+# `Dockerfile` gerado à mão (§3.12.2, §3.12.3). Depois de mudar um fragmento, rode:
+#   uv run python scripts/render_dockerfile.py
+#
+# Imagens base fixadas por tag+digest (ver relatório do step S5 para a data da resolução):
+#   python:3.12-slim@sha256:2f17fc044b579bab302c2e8054d3a686e2cb9a83de48e70534b94cd8ebbe06a9
+#   ghcr.io/astral-sh/uv:0.11.32@sha256:df4cae8f3a96d175e2e5f992e597550000edbe78fdc2594d5cd8de1a217f504c
+
+FROM python:3.12-slim@sha256:2f17fc044b579bab302c2e8054d3a686e2cb9a83de48e70534b94cd8ebbe06a9 AS build
+
+# Binário `uv` copiado de uma imagem oficial fixada por tag+digest, sem instalar nada via pip.
+COPY --from=ghcr.io/astral-sh/uv:0.11.32@sha256:df4cae8f3a96d175e2e5f992e597550000edbe78fdc2594d5cd8de1a217f504c /uv /uvx /bin/
+
+WORKDIR /app
+
+# Lista separada por vírgula dos extras de `pyproject.toml` (ray, postgres, mysql, kafka,
+# toxicity, anthropic, all). Padrão vazio: só as dependências obrigatórias.
+ARG EXTRAS=""
+
+# `pyproject.toml`, `uv.lock` e `README.md` primeiro, para o cache de camadas sobreviver a
+# mudanças em `src/`. `README.md` é necessário porque `pyproject.toml` declara `readme =
+# "README.md"`: sem ele, o build backend (hatchling) falha ao instalar o pacote no venv.
+COPY pyproject.toml uv.lock README.md ./
+
+# A expansão sem aspas de $extra_flags é proposital: cada item de $EXTRAS precisa virar um
+# argumento `--extra <x>` separado para o uv.
+# hadolint ignore=SC2086
+RUN set -eu; \
+    extra_flags=""; \
+    if [ -n "$EXTRAS" ]; then \
+        old_ifs=$IFS; \
+        IFS=','; \
+        for extra in $EXTRAS; do \
+            extra_flags="$extra_flags --extra $extra"; \
+        done; \
+        IFS=$old_ifs; \
+    fi; \
+    uv sync --frozen --no-dev --no-editable --no-install-project $extra_flags
+
+
+# Só agora o código entra na imagem: mudanças em `src/` não invalidam o cache de dependências.
+COPY src/ src/
+
+# A expansão sem aspas de $extra_flags é proposital: cada item de $EXTRAS precisa virar um
+# argumento `--extra <x>` separado para o uv.
+# hadolint ignore=SC2086
+RUN set -eu; \
+    extra_flags=""; \
+    if [ -n "$EXTRAS" ]; then \
+        old_ifs=$IFS; \
+        IFS=','; \
+        for extra in $EXTRAS; do \
+            extra_flags="$extra_flags --extra $extra"; \
+        done; \
+        IFS=$old_ifs; \
+    fi; \
+    uv sync --frozen --no-dev --no-editable $extra_flags
+
+FROM python:3.12-slim@sha256:2f17fc044b579bab302c2e8054d3a686e2cb9a83de48e70534b94cd8ebbe06a9 AS final
+
+ARG VERSION="0.0.0"
+LABEL org.opencontainers.image.version="$VERSION"
+
+# Usuário não-root fixo (UID/GID 10001), criado antes de qualquer fragmento de runtime
+# para que eles possam usar `chown dataipsum:dataipsum` em diretórios que criarem.
+RUN groupadd --gid 10001 dataipsum \
+    && useradd --uid 10001 --gid 10001 --no-create-home --shell /usr/sbin/nologin dataipsum
+
+# Só o venv: sem compiladores, sem cache do uv, sem código de teste.
+COPY --from=build /app/.venv /app/.venv
+
+ENV PATH=/app/.venv/bin:$PATH \
+    PYTHONDONTWRITEBYTECODE=1 \
+    PYTHONUNBUFFERED=1
+
+WORKDIR /work
+
+
+USER 10001
+
+# Saída gerada. O schema é montado em /schemas (somente leitura, via `-v ...:/schemas:ro`).
+VOLUME ["/out"]
+
+ENTRYPOINT ["dataipsum"]
+CMD ["--help"]

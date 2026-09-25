@@ -1,0 +1,18 @@
+# Contexto de build da imagem dataIpsum (DD-00 §3.12.1).
+
+.git
+.venv
+**/__pycache__
+*.pyc
+tests/
+design_docs/
+docs/
+examples/
+out/
+.claude/
+.agents/
+.hermes/
+*.parquet
+*.csv
+*.jsonl
+.env*

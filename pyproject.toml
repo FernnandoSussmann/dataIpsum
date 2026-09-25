@@ -1,0 +1,131 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "dataipsum"
+version = "0.1.0"
+description = "Gerador de dados sintéticos determinístico, extensível por plugins."
+readme = "README.md"
+requires-python = ">=3.12"
+license = { text = "MIT" }
+dependencies = [
+    "pydantic>=2",
+    "pyyaml",
+    "typer",
+    "numpy",
+    "pyarrow",
+    "faker",
+    "psutil",
+    "httpx",
+    "sqlglot",
+]
+
+[project.optional-dependencies]
+ray = ["ray[default]"]
+postgres = ["psycopg[binary]>=3"]
+mysql = ["PyMySQL"]
+kafka = ["confluent-kafka[avro,schemaregistry]"]
+toxicity = ["detoxify"]
+anthropic = ["anthropic"]
+all = [
+    "dataipsum[ray]",
+    "dataipsum[postgres]",
+    "dataipsum[mysql]",
+    "dataipsum[kafka]",
+    "dataipsum[toxicity]",
+    "dataipsum[anthropic]",
+]
+
+[project.scripts]
+dataipsum = "dataipsum.cli:app"
+
+[project.entry-points."dataipsum.generators"]
+
+[project.entry-points."dataipsum.sinks"]
+
+[dependency-groups]
+dev = [
+    "pytest",
+    "pytest-cov",
+    "hypothesis",
+    "ruff",
+    "mypy",
+    "types-PyYAML",
+    "pre-commit",
+    "bandit",
+    "semgrep",
+    "pip-audit",
+    "fastavro",
+    "testcontainers",
+]
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/dataipsum"]
+
+[tool.ruff]
+target-version = "py312"
+line-length = 100
+src = ["src", "tests"]
+
+[tool.ruff.lint]
+select = [
+    "E", "F", "W",
+    "C4",    # comprehensions
+    "PERF",  # performance (ex.: PERF401)
+    "SIM",   # simplifications
+    "FURB",  # refurb
+    "N",     # pep8 naming
+    "ERA",   # commented-out code
+    "RET",   # return statements
+    "UP",    # pyupgrade
+    "I",     # isort
+]
+ignore = []
+
+[tool.ruff.lint.per-file-ignores]
+"tests/core/fixtures/**" = ["ALL"]
+
+[tool.ruff.format]
+quote-style = "double"
+
+[tool.mypy]
+strict = true
+python_version = "3.12"
+plugins = ["pydantic.mypy"]
+
+[[tool.mypy.overrides]]
+module = ["faker.*", "sqlglot.*", "confluent_kafka.*", "detoxify.*", "psutil.*", "pyarrow.*"]
+ignore_missing_imports = true
+
+[tool.pytest.ini_options]
+markers = [
+    "integration: exige Docker/testcontainers ou rede",
+    "slow: teste demorado (ex.: qui-quadrado com 10^6 amostras)",
+    "ray: exige um cluster Ray local",
+    "docker: exige build de imagem ou docker compose",
+]
+addopts = "--strict-markers"
+testpaths = ["tests"]
+
+# §3.2 pede cobertura >= 85% "por pacote de trilha"; medimos hoje um único
+# número global sobre src/dataipsum, porque só o pacote core (DD-00) tem
+# código real ainda. Quando as trilhas de DD-01/DD-02 chegarem em paralelo,
+# reconsiderar (ex.: um --cov por diretório de trilha), para uma trilha com
+# cobertura baixa não se esconder atrás de outra com cobertura alta.
+[tool.coverage.run]
+source = ["src/dataipsum"]
+branch = true
+
+[tool.coverage.report]
+fail_under = 85
+show_missing = true
+exclude_lines = [
+    "pragma: no cover",
+    "if TYPE_CHECKING:",
+    "^\\s*\\.\\.\\.$",
+    "^\\s*def .*: \\.\\.\\.$",
+]
+
+[tool.bandit]
+exclude_dirs = ["tests", "examples"]

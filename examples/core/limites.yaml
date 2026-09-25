@@ -1,0 +1,23 @@
+# limits.max_rows_total e chunk_size customizados (DD-00 §3.3, §7.2).
+#
+# `chunk_size` controla o tamanho do lote vetorizado por chunk (padrão
+# 10_000; aqui reduzido para 500, útil em schemas pequenos ou para observar
+# mais chunks no manifesto). `limits.max_rows_total` é um guardrail: se a
+# soma das linhas planejadas ultrapassar esse valor, `dataipsum.plan`/
+# `dataipsum.generate` levantam `ResourceLimitError` antes de gerar qualquer
+# dado (DD-00 §6.3).
+#
+#   uv run dataipsum generate --schema examples/core/limites.yaml --out /tmp/saida
+#
+version: 1
+name: limites
+chunk_size: 500
+limits:
+  max_rows_total: 5000
+tables:
+  - name: usuarios
+    rows: 2000
+    primary_key: {columns: [id], strategy: sequence, start: 1}
+    columns:
+      - {name: id, type: int}
+      - {name: nome, type: nome_proprio, max_length: 120}
