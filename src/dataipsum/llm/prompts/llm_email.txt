@@ -1,0 +1,5 @@
+Escreva um e-mail em português do Brasil, com assunto e corpo, sobre um assunto comercial ou administrativo comum (confirmação de pedido, aviso de entrega, cobrança educada, boas-vindas, agradecimento). Formate exatamente assim, sem nada antes ou depois:
+
+Assunto: <assunto do e-mail>
+
+<corpo do e-mail, em um ou dois parágrafos curtos>

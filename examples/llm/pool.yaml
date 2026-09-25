@@ -1,0 +1,27 @@
+# `mode: pool` (DD-01 §C.7, §C.3.4): gera `pool_size` textos ANTES dos chunks da tabela (o
+# provedor recebe no máximo `pool_size` chamadas, mais as regenerações de marcador desconhecido),
+# e cada linha escolhe um texto do pool e o preenche com os próprios dados.
+version: 1
+name: pool_de_textos
+seed: 42
+llm:
+  default_provider: local
+  providers:
+    local: {kind: ollama, base_url: http://localhost:11434, model: llama3.1:8b}
+
+tables:
+  - name: usuarios
+    rows: 1000
+    primary_key: {columns: [id], strategy: sequence, start: 1}
+    columns:
+      - {name: id, type: int}
+      - {name: nome, type: nome_proprio, max_length: 120}
+      - name: resenha
+        type: llm_post
+        max_length: 240
+        params:
+          provider: local
+          prompt: "Escreva uma resenha curta e genérica de um produto qualquer, mencionando {nome}."
+          mode: pool
+          pool_size: 50
+          toxicity: block

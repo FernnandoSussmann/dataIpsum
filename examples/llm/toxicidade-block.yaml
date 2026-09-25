@@ -1,0 +1,26 @@
+# `toxicity: block` (DD-01 §C.7, §C.3.5): conteúdo ofensivo é regenerado com nova seed até
+# `max_regenerations`; se esgotar, o chunk fica `pending_llm` sem gravar nada (nunca troca para
+# placeholder sozinho — só com `on_failure: placeholder` explícito).
+version: 1
+name: toxicidade_block
+seed: 42
+llm:
+  default_provider: local
+  providers:
+    local: {kind: ollama, base_url: http://localhost:11434, model: llama3.1:8b}
+
+tables:
+  - name: pedidos
+    rows: 500
+    primary_key: {columns: [id], strategy: sequence, start: 1}
+    columns:
+      - {name: id, type: int}
+      - name: comentario
+        type: llm_post
+        max_length: 200
+        params:
+          provider: local
+          mode: unique
+          toxicity: block
+          max_regenerations: 3
+          on_failure: pending

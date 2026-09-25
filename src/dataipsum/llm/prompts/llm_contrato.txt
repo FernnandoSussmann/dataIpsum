@@ -1,0 +1,1 @@
+Escreva uma cláusula de contrato em português do Brasil, numerada (ex.: "Cláusula 1ª"), sobre um tema comum de prestação de serviços ou compra e venda (objeto do contrato, prazo, forma de pagamento, rescisão, confidencialidade). Linguagem formal, direta e juridicamente plausível, sem repetir o nome das partes mais de uma vez.
