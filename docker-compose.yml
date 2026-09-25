@@ -1,0 +1,92 @@
+# Compose de desenvolvimento (DD-02, trilha G, §G.3.2). Sobe dataIpsum + Ollama
+# com a MESMA imagem única do DD-00 (§3.12): o Dockerfile gerado na raiz do
+# repositório, nunca uma imagem alternativa. Não é usado em produção nem para
+# publicar em registry (§G.2, não-objetivo). Detalhes de uso e do profile
+# `gpu` em examples/cli-docker/compose-ollama.md.
+#
+# Uso básico (CPU):
+#   docker compose up -d ollama ollama-pull
+#   docker compose run --rm dataipsum schema validate /schemas/loja.yaml
+#   docker compose run --rm dataipsum gen /schemas/llm/ollama-local.yaml -o /out
+
+services:
+  ollama:
+    image: ollama/ollama:0.3.14
+    # Sem `ports`: só acessível na rede interna do compose (§G.3.2, §G.5.4).
+    volumes:
+      - ollama-models:/root/.ollama
+    healthcheck:
+      test: ["CMD", "ollama", "list"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 30s
+    restart: unless-stopped
+
+  # Variante com GPU NVIDIA reservada, ativada só pelo profile `gpu` (§G.3.2).
+  # Publica o alias de rede "ollama": nunca rode junto do serviço `ollama`
+  # acima (veja compose-ollama.md); `dataipsum` sempre fala com
+  # http://ollama:11434 independente de qual variante está no ar.
+  ollama-gpu:
+    image: ollama/ollama:0.3.14
+    profiles: [gpu]
+    networks:
+      default:
+        aliases: [ollama]
+    volumes:
+      - ollama-models:/root/.ollama
+    healthcheck:
+      test: ["CMD", "ollama", "list"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 30s
+    restart: unless-stopped
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities: [gpu]
+
+  ollama-pull:
+    image: ollama/ollama:0.3.14
+    depends_on:
+      ollama:
+        condition: service_healthy
+    entrypoint: ["/bin/sh", "-c"]
+    command: ["ollama pull \"${DATAIPSUM_LLM_MODEL:-llama3.1:8b}\""]
+    environment:
+      OLLAMA_HOST: "http://ollama:11434"
+    restart: "no"
+
+  dataipsum:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        EXTRAS: "${EXTRAS:-}"
+    environment:
+      DATAIPSUM_LLM_PROVIDER: ollama
+      DATAIPSUM_LLM_BASE_URL: http://ollama:11434
+    volumes:
+      - ./examples:/schemas:ro
+      - ./out:/out
+      - dataipsum-models:/var/cache/dataipsum/models
+    tmpfs:
+      - /tmp
+    user: "10001:10001"
+    read_only: true
+    cap_drop: [ALL]
+    security_opt:
+      - no-new-privileges:true
+    depends_on:
+      ollama:
+        condition: service_healthy
+      ollama-pull:
+        condition: service_completed_successfully
+
+volumes:
+  ollama-models:
+  dataipsum-models:
