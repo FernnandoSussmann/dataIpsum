@@ -1,0 +1,10 @@
+# O menor schema válido do contrato (DD-02 H.6): só os campos obrigatórios
+# de topo (`version`, `tables`) e de tabela/coluna (`name`, `type`,
+# `primary_key`, `rows`). Todo o resto usa os padrões de DD-00 §3.3.
+version: 1
+tables:
+  - name: usuarios
+    rows: 1
+    primary_key: {columns: [id], strategy: sequence}
+    columns:
+      - {name: id, type: int}

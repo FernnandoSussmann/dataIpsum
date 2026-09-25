@@ -1,0 +1,430 @@
+# Rascunho do contrato da futura API web (DD-02, trilha H, H.3.3).
+#
+# NÃO É UMA API IMPLEMENTADA. O RESEARCH §2.10 põe a UI e a API FastAPI fora
+# do MVP (não-objetivo, DD-02 §2). Este documento existe só para congelar o
+# contrato que a UI React/React Flow futura vai consumir, mapeado 1:1 às
+# funções da façade `dataipsum.api` (DD-00 §3.8).
+#
+# Ver docs/api/README.md para os requisitos de segurança (H.3.3) e as regras
+# de compatibilidade do JSON Schema (H.3.2).
+openapi: 3.1.0
+info:
+  title: dataIpsum API (rascunho)
+  version: "1.0.0-draft"
+  description: |
+    Rascunho do contrato HTTP para a futura API web do dataIpsum (M4, só
+    contrato — DD-02, trilha H). Cada rota mapeia para uma função da façade
+    `dataipsum.api` (DD-00 §3.8). Nenhuma rota está implementada neste
+    marco: este documento é o "esboço da API" citado em DD-02 H.3.3.
+
+    ## Requisitos de segurança (obrigatórios a partir do M4)
+
+    - **Autenticação obrigatória** em toda rota, sem exceção.
+    - O cliente **nunca** informa caminhos de sistema de arquivos: o
+      servidor escolhe o destino de cada execução por `run_id`, nunca por um
+      caminho vindo do corpo da requisição.
+    - Limites de tamanho de corpo, de número de linhas planejadas e de
+      execuções simultâneas por usuário, aplicados antes de qualquer
+      processamento.
+    - Segredos do LLM e dos sinks (chaves de API, senhas, DSNs) só existem
+      no servidor, como variáveis de ambiente (`*_env`, DD-00 §6.5); o corpo
+      da requisição **nunca** aceita um segredo em si, só o nome de uma
+      variável de ambiente já configurada no servidor.
+    - CORS restrito à origem da UI oficial.
+
+    Nenhum desses requisitos tem implementação neste marco: eles ficam
+    registrados aqui para que a API futura (FastAPI) nasça com eles, e não
+    os adicione depois.
+  contact:
+    name: dataIpsum
+
+servers:
+  - url: https://api.dataipsum.example/v1
+    description: placeholder — nenhum servidor real existe neste marco
+
+paths:
+  /schemas:validate:
+    post:
+      operationId: validateSchema
+      summary: Valida um schema (corpo JSON)
+      description: Mapeia para `dataipsum.api.validate` (via `load_schema` antes).
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "../../schemas/dataipsum-schema.v1.json"
+      responses:
+        "200":
+          description: Relatório de validação
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ValidationReport"
+        "400":
+          $ref: "#/components/responses/ValidationFailed"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+
+  /plans:
+    post:
+      operationId: createPlan
+      summary: Calcula o plano de execução (linhas por tabela, chunks)
+      description: Mapeia para `dataipsum.api.plan`.
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/PlanRequest"
+      responses:
+        "200":
+          description: Plano calculado
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RunPlan"
+        "400":
+          $ref: "#/components/responses/ValidationFailed"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+
+  /runs:
+    post:
+      operationId: createRun
+      summary: Inicia uma execução assíncrona
+      description: |
+        Mapeia para `dataipsum.api.generate`. O servidor escolhe o
+        diretório de destino a partir do `run_id` que ele mesmo gera — o
+        corpo da requisição nunca informa um caminho de sistema de
+        arquivos (requisito de segurança de H.3.3).
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/RunRequest"
+      responses:
+        "202":
+          description: Execução aceita e iniciada de forma assíncrona
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RunAccepted"
+        "400":
+          $ref: "#/components/responses/ValidationFailed"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "429":
+          description: Limite de execuções simultâneas por usuário excedido
+
+  /runs/{run_id}:
+    get:
+      operationId: getRun
+      summary: Status e manifesto resumido de uma execução
+      description: Lê o manifesto da execução (DD-00 §3.7) identificada por `run_id`.
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/RunId"
+      responses:
+        "200":
+          description: Status e resumo do manifesto
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RunStatus"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          description: "`run_id` desconhecido"
+
+  /runs/{run_id}:resume:
+    post:
+      operationId: resumeRun
+      summary: Retoma uma execução pelo manifesto
+      description: Mapeia para `dataipsum.api.resume`.
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/RunId"
+      responses:
+        "202":
+          description: Retomada aceita
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RunAccepted"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          description: "`run_id` desconhecido"
+
+  /schemas:export:
+    post:
+      operationId: exportSchema
+      summary: Exporta DDL ou Avro do schema
+      description: Mapeia para `dataipsum.api.export_schema`.
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ExportRequest"
+      responses:
+        "200":
+          description: Arquivos exportados (DDL por dialeto ou um `.avsc` por tabela)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ExportResult"
+        "400":
+          $ref: "#/components/responses/ValidationFailed"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+
+  /schemas:import:
+    post:
+      operationId: importDdl
+      summary: Importa DDL SQL e devolve um schema dataIpsum (M3)
+      description: Mapeia para `dataipsum.api.import_ddl`. O SQL nunca é executado (DD-02 F.5).
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ImportRequest"
+      responses:
+        "200":
+          description: Schema importado, com o relatório de inferências e avisos
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ImportResult"
+        "400":
+          $ref: "#/components/responses/ValidationFailed"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      description: |
+        Placeholder de autenticação (DD-02 H.3.3: "autenticação obrigatória").
+        O mecanismo real (OAuth2, chave de API própria da UI, etc.) é decisão
+        de quando a API for implementada; o único requisito congelado aqui é
+        que TODA rota exige autenticação, sem exceção.
+
+  parameters:
+    RunId:
+      name: run_id
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+
+  responses:
+    Unauthorized:
+      description: Autenticação ausente ou inválida
+    ValidationFailed:
+      description: Corpo inválido (schema ou requisição)
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ValidationReport"
+
+  schemas:
+    ValidationReport:
+      type: object
+      additionalProperties: false
+      required: [is_valid, errors]
+      properties:
+        is_valid:
+          type: boolean
+        errors:
+          type: array
+          items:
+            $ref: "#/components/schemas/ValidationError"
+
+    ValidationError:
+      type: object
+      additionalProperties: false
+      required: [path, message]
+      properties:
+        path:
+          type: string
+          description: Caminho do erro no schema, ex. "tables[2].columns[3].params.max"
+        message:
+          type: string
+
+    PlanRequest:
+      type: object
+      additionalProperties: false
+      required: [schema]
+      properties:
+        schema:
+          $ref: "../../schemas/dataipsum-schema.v1.json"
+        seed:
+          type: integer
+          minimum: 0
+        chunk_size:
+          type: integer
+          minimum: 100
+          maximum: 1000000
+
+    RunPlan:
+      type: object
+      additionalProperties: false
+      required: [order, tables]
+      properties:
+        order:
+          type: array
+          items:
+            type: string
+          description: Tabelas em ordem topológica
+        tables:
+          type: object
+          description: "Por tabela: número de linhas e chunks planejados (DD-00 §3.5)"
+
+    RunRequest:
+      type: object
+      additionalProperties: false
+      required: [schema, sink]
+      properties:
+        schema:
+          $ref: "../../schemas/dataipsum-schema.v1.json"
+        sink:
+          type: object
+          additionalProperties: false
+          required: [kind]
+          properties:
+            kind:
+              type: string
+              enum: [csv, json, jsonl, parquet, postgres, mysql, kafka]
+            options:
+              type: object
+              description: |
+                Opções do sink, já sanitizadas do lado do cliente (DD-00
+                §6.5): nenhuma chave que pareça segredo é aceita a não ser
+                terminada em "_env", que carrega só o NOME de uma variável
+                de ambiente configurada no servidor.
+        seed:
+          type: integer
+          minimum: 0
+        max_rows:
+          type: integer
+          minimum: 1
+        emit_schema:
+          type: array
+          items:
+            type: string
+            enum: [ddl, avro]
+
+    RunAccepted:
+      type: object
+      additionalProperties: false
+      required: [run_id, status]
+      properties:
+        run_id:
+          type: string
+          format: uuid
+        status:
+          type: string
+          enum: [running]
+
+    RunStatus:
+      type: object
+      additionalProperties: false
+      required: [run_id, status, tables]
+      properties:
+        run_id:
+          type: string
+          format: uuid
+        status:
+          type: string
+          enum: [running, completed, partial, failed]
+        tables:
+          type: object
+          description: "Por tabela: linhas concluídas (resumo do manifesto, DD-00 §3.7)"
+        pending_chunks:
+          type: integer
+          minimum: 0
+
+    ExportRequest:
+      type: object
+      additionalProperties: false
+      required: [schema, format]
+      properties:
+        schema:
+          $ref: "../../schemas/dataipsum-schema.v1.json"
+        format:
+          type: string
+          enum: [ddl, avro]
+        dialect:
+          type: string
+          description: Obrigatório quando `format` é "ddl" (ex. "postgres", "mysql")
+
+    ExportResult:
+      type: object
+      additionalProperties: false
+      required: [files]
+      properties:
+        files:
+          type: array
+          items:
+            type: object
+            additionalProperties: false
+            required: [path, sha256]
+            properties:
+              path:
+                type: string
+                description: Caminho relativo ao destino escolhido pelo servidor
+              sha256:
+                type: string
+
+    ImportRequest:
+      type: object
+      additionalProperties: false
+      required: [sql, dialect]
+      properties:
+        sql:
+          type: string
+          maxLength: 5242880
+          description: Texto do DDL (limite de 5 MiB, DD-02 F.5). Nunca é executado.
+        dialect:
+          type: string
+          enum: [postgres, mysql]
+
+    ImportResult:
+      type: object
+      additionalProperties: false
+      required: [schema, report]
+      properties:
+        schema:
+          $ref: "../../schemas/dataipsum-schema.v1.json"
+        report:
+          type: object
+          additionalProperties: false
+          required: [inferences, warnings]
+          properties:
+            inferences:
+              type: array
+              items:
+                type: string
+            warnings:
+              type: array
+              items:
+                type: string

@@ -1,0 +1,560 @@
+{
+  "$defs": {
+    "CardinalityRange": {
+      "additionalProperties": false,
+      "properties": {
+        "max": {
+          "minimum": 0,
+          "title": "Max",
+          "type": "integer"
+        },
+        "min": {
+          "minimum": 0,
+          "title": "Min",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "min",
+        "max"
+      ],
+      "title": "CardinalityRange",
+      "type": "object"
+    },
+    "CardinalitySpec": {
+      "additionalProperties": false,
+      "properties": {
+        "distribution": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Distribution"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "range": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/CardinalityRange"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        }
+      },
+      "title": "CardinalitySpec",
+      "type": "object"
+    },
+    "ColumnSpec": {
+      "additionalProperties": false,
+      "properties": {
+        "format": {
+          "anyOf": [
+            {
+              "enum": [
+                "masked",
+                "unmasked"
+              ],
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Format"
+        },
+        "invalid_ratio": {
+          "default": 0.0,
+          "maximum": 1.0,
+          "minimum": 0.0,
+          "title": "Invalid Ratio",
+          "type": "number"
+        },
+        "locale": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Locale"
+        },
+        "max_length": {
+          "anyOf": [
+            {
+              "minimum": 1,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Max Length"
+        },
+        "name": {
+          "title": "Name",
+          "type": "string"
+        },
+        "null_ratio": {
+          "default": 0.0,
+          "maximum": 1.0,
+          "minimum": 0.0,
+          "title": "Null Ratio",
+          "type": "number"
+        },
+        "params": {
+          "additionalProperties": true,
+          "title": "Params",
+          "type": "object"
+        },
+        "type": {
+          "minLength": 1,
+          "title": "Type",
+          "type": "string"
+        }
+      },
+      "required": [
+        "name",
+        "type"
+      ],
+      "title": "ColumnSpec",
+      "type": "object"
+    },
+    "Distribution": {
+      "additionalProperties": false,
+      "properties": {
+        "zipf": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/ZipfDistribution"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        }
+      },
+      "title": "Distribution",
+      "type": "object"
+    },
+    "LLMConfig": {
+      "additionalProperties": false,
+      "properties": {
+        "default_provider": {
+          "title": "Default Provider",
+          "type": "string"
+        },
+        "providers": {
+          "additionalProperties": {
+            "$ref": "#/$defs/LLMProviderConfig"
+          },
+          "minProperties": 1,
+          "title": "Providers",
+          "type": "object"
+        },
+        "retry": {
+          "$ref": "#/$defs/RetryConfig"
+        }
+      },
+      "required": [
+        "default_provider",
+        "providers"
+      ],
+      "title": "LLMConfig",
+      "type": "object"
+    },
+    "LLMProviderConfig": {
+      "additionalProperties": false,
+      "properties": {
+        "api_key_env": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Api Key Env"
+        },
+        "base_url": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Base Url"
+        },
+        "kind": {
+          "enum": [
+            "ollama",
+            "openai_compatible",
+            "anthropic"
+          ],
+          "title": "Kind",
+          "type": "string"
+        },
+        "max_concurrency": {
+          "default": 1,
+          "minimum": 1,
+          "title": "Max Concurrency",
+          "type": "integer"
+        },
+        "model": {
+          "minLength": 1,
+          "title": "Model",
+          "type": "string"
+        },
+        "temperature": {
+          "default": 0.0,
+          "minimum": 0.0,
+          "title": "Temperature",
+          "type": "number"
+        },
+        "timeout_s": {
+          "default": 120.0,
+          "exclusiveMinimum": 0.0,
+          "title": "Timeout S",
+          "type": "number"
+        }
+      },
+      "required": [
+        "kind",
+        "model"
+      ],
+      "title": "LLMProviderConfig",
+      "type": "object"
+    },
+    "LimitsSpec": {
+      "additionalProperties": false,
+      "properties": {
+        "max_rows_total": {
+          "default": 100000000,
+          "minimum": 1,
+          "title": "Max Rows Total",
+          "type": "integer"
+        }
+      },
+      "title": "LimitsSpec",
+      "type": "object"
+    },
+    "PrimaryKeySpec": {
+      "additionalProperties": false,
+      "properties": {
+        "columns": {
+          "items": {
+            "type": "string"
+          },
+          "minItems": 1,
+          "title": "Columns",
+          "type": "array"
+        },
+        "start": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Start"
+        },
+        "step": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Step"
+        },
+        "strategy": {
+          "enum": [
+            "sequence",
+            "seeded_int",
+            "seeded_uuid",
+            "composite"
+          ],
+          "title": "Strategy",
+          "type": "string"
+        }
+      },
+      "required": [
+        "columns",
+        "strategy"
+      ],
+      "title": "PrimaryKeySpec",
+      "type": "object"
+    },
+    "RetryConfig": {
+      "additionalProperties": false,
+      "properties": {
+        "base_delay_s": {
+          "default": 1.0,
+          "exclusiveMinimum": 0.0,
+          "title": "Base Delay S",
+          "type": "number"
+        },
+        "max_attempts": {
+          "default": 5,
+          "minimum": 1,
+          "title": "Max Attempts",
+          "type": "integer"
+        },
+        "max_delay_s": {
+          "default": 60.0,
+          "exclusiveMinimum": 0.0,
+          "title": "Max Delay S",
+          "type": "number"
+        }
+      },
+      "title": "RetryConfig",
+      "type": "object"
+    },
+    "RowsFromSpec": {
+      "additionalProperties": false,
+      "description": "Semântica plena na trilha B (DD-01); aqui só a forma estrutural do campo.",
+      "properties": {
+        "cardinality": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/CardinalitySpec"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "coverage": {
+          "anyOf": [
+            {
+              "maximum": 1.0,
+              "minimum": 0.0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Coverage"
+        },
+        "pair": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Pair"
+        },
+        "relation": {
+          "enum": [
+            "one_to_one",
+            "one_to_many",
+            "many_to_many",
+            "thread"
+          ],
+          "title": "Relation",
+          "type": "string"
+        },
+        "via": {
+          "title": "Via",
+          "type": "string"
+        }
+      },
+      "required": [
+        "via",
+        "relation"
+      ],
+      "title": "RowsFromSpec",
+      "type": "object"
+    },
+    "TableSpec": {
+      "additionalProperties": false,
+      "properties": {
+        "columns": {
+          "items": {
+            "$ref": "#/$defs/ColumnSpec"
+          },
+          "maxItems": 500,
+          "minItems": 1,
+          "title": "Columns",
+          "type": "array"
+        },
+        "locale": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Locale"
+        },
+        "name": {
+          "title": "Name",
+          "type": "string"
+        },
+        "primary_key": {
+          "$ref": "#/$defs/PrimaryKeySpec"
+        },
+        "rows": {
+          "anyOf": [
+            {
+              "minimum": 0,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Rows"
+        },
+        "rows_from": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/RowsFromSpec"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "thread": {
+          "anyOf": [
+            {
+              "additionalProperties": true,
+              "type": "object"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Thread"
+        }
+      },
+      "required": [
+        "name",
+        "primary_key",
+        "columns"
+      ],
+      "title": "TableSpec",
+      "type": "object"
+    },
+    "ZipfDistribution": {
+      "additionalProperties": false,
+      "properties": {
+        "s": {
+          "exclusiveMinimum": 0,
+          "title": "S",
+          "type": "number"
+        }
+      },
+      "required": [
+        "s"
+      ],
+      "title": "ZipfDistribution",
+      "type": "object"
+    }
+  },
+  "$id": "https://dataipsum.local/schemas/dataipsum-schema.v1.json",
+  "additionalProperties": false,
+  "properties": {
+    "chunk_size": {
+      "default": 10000,
+      "maximum": 1000000,
+      "minimum": 100,
+      "title": "Chunk Size",
+      "type": "integer"
+    },
+    "limits": {
+      "$ref": "#/$defs/LimitsSpec"
+    },
+    "llm": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/LLMConfig"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
+    },
+    "locale": {
+      "default": "pt_BR",
+      "title": "Locale",
+      "type": "string"
+    },
+    "name": {
+      "default": "dataipsum",
+      "title": "Name",
+      "type": "string"
+    },
+    "seed": {
+      "anyOf": [
+        {
+          "exclusiveMaximum": 9223372036854775808,
+          "minimum": 0,
+          "type": "integer"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Seed"
+    },
+    "tables": {
+      "items": {
+        "$ref": "#/$defs/TableSpec"
+      },
+      "maxItems": 200,
+      "minItems": 1,
+      "title": "Tables",
+      "type": "array"
+    },
+    "version": {
+      "const": 1,
+      "title": "Version",
+      "type": "integer"
+    }
+  },
+  "required": [
+    "version",
+    "tables"
+  ],
+  "title": "Schema",
+  "type": "object"
+}
