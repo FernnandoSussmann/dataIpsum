@@ -6,7 +6,7 @@ from __future__ import annotations
 import pyarrow as pa
 import pytest
 from tests.sinks._kafka_fakes import FakeProducer, install_fake_confluent_kafka
-from tests.sinks.conftest import make_column, make_run_context, make_table
+from tests.sinks.conftest import make_column, make_run_context, make_schema, make_table
 
 import dataipsum.schema_io as schema_io_module
 from dataipsum.errors import SinkError
@@ -19,7 +19,7 @@ def fake_kafka(monkeypatch: pytest.MonkeyPatch) -> dict[str, object]:
     monkeypatch.setattr(
         schema_io_module,
         "avro_schema",
-        lambda table: {"type": "record", "name": table.name},
+        lambda schema, table: {"type": "record", "name": table},
         raising=False,
     )
     return captured
@@ -47,7 +47,11 @@ def test_open_configures_idempotent_producer(fake_kafka: dict[str, object]) -> N
     table = make_table("usuarios", [make_column("id", "int64")])
     sink = KafkaSink({"bootstrap_servers": "kafka:9092", "schema_registry_url": "http://sr:8081"})
 
-    sink.open(make_run_context("/out"), table, pa.schema([("id", pa.int64())]))
+    sink.open(
+        make_run_context("/out", schema=make_schema([table])),
+        table,
+        pa.schema([("id", pa.int64())]),
+    )
 
     producer = fake_kafka["producer"]
     assert isinstance(producer, FakeProducer)
@@ -60,7 +64,11 @@ def test_open_configures_idempotent_producer(fake_kafka: dict[str, object]) -> N
 def test_topic_uses_prefix_and_table_name(fake_kafka: dict[str, object]) -> None:
     table = make_table("usuarios", [make_column("id", "int64")])
     sink = KafkaSink({"topic_prefix": "loja."})
-    sink.open(make_run_context("/out"), table, pa.schema([("id", pa.int64())]))
+    sink.open(
+        make_run_context("/out", schema=make_schema([table])),
+        table,
+        pa.schema([("id", pa.int64())]),
+    )
 
     schema = pa.schema([("id", pa.int64())])
     batch = pa.record_batch([pa.array([1])], schema=schema)
@@ -72,7 +80,11 @@ def test_topic_uses_prefix_and_table_name(fake_kafka: dict[str, object]) -> None
 def test_write_chunk_succeeds_only_after_all_deliveries_ok(fake_kafka: dict[str, object]) -> None:
     table = make_table("usuarios", [make_column("id", "int64")])
     sink = KafkaSink()
-    sink.open(make_run_context("/out"), table, pa.schema([("id", pa.int64())]))
+    sink.open(
+        make_run_context("/out", schema=make_schema([table])),
+        table,
+        pa.schema([("id", pa.int64())]),
+    )
     schema = pa.schema([("id", pa.int64())])
     batch = pa.record_batch([pa.array([1, 2, 3])], schema=schema)
 
@@ -89,7 +101,11 @@ def test_write_chunk_fails_when_any_delivery_report_has_error(
 ) -> None:
     table = make_table("usuarios", [make_column("id", "int64")])
     sink = KafkaSink()
-    sink.open(make_run_context("/out"), table, pa.schema([("id", pa.int64())]))
+    sink.open(
+        make_run_context("/out", schema=make_schema([table])),
+        table,
+        pa.schema([("id", pa.int64())]),
+    )
     producer = fake_kafka["producer"]
     assert isinstance(producer, FakeProducer)
     producer.fail_next_delivery = True
@@ -104,7 +120,11 @@ def test_write_chunk_fails_when_any_delivery_report_has_error(
 def test_chunk_state_is_always_absent(fake_kafka: dict[str, object]) -> None:
     table = make_table("usuarios", [make_column("id", "int64")])
     sink = KafkaSink()
-    sink.open(make_run_context("/out"), table, pa.schema([("id", pa.int64())]))
+    sink.open(
+        make_run_context("/out", schema=make_schema([table])),
+        table,
+        pa.schema([("id", pa.int64())]),
+    )
 
     assert sink.chunk_state(1) == "absent"
     assert sink.chunk_state(999) == "absent"

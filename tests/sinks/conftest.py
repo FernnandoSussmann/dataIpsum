@@ -17,7 +17,7 @@ if str(_REPO_ROOT) not in sys.path:
     sys.path.insert(0, str(_REPO_ROOT))
 
 from dataipsum.contracts.sink import RunContext  # noqa: E402
-from dataipsum.schema.models import ColumnSpec, PrimaryKeySpec, TableSpec  # noqa: E402
+from dataipsum.schema.models import ColumnSpec, PrimaryKeySpec, Schema, TableSpec  # noqa: E402
 
 
 def make_column(name: str, type_: str = "string", **kwargs: object) -> ColumnSpec:
@@ -40,6 +40,13 @@ def make_table(
 
 
 def make_run_context(
-    out_dir: str, *, run_id: str = "11111111-1111-1111-1111-111111111111"
+    out_dir: str,
+    *,
+    run_id: str = "11111111-1111-1111-1111-111111111111",
+    schema: Schema | None = None,
 ) -> RunContext:
-    return RunContext(run_id=run_id, out_dir=out_dir, seed=42)
+    return RunContext(run_id=run_id, out_dir=out_dir, seed=42, schema=schema)
+
+
+def make_schema(tables: list[TableSpec], *, name: str = "dataipsum") -> Schema:
+    return Schema(version=1, name=name, tables=tables)

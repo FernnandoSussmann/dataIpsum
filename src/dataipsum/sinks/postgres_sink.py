@@ -13,7 +13,7 @@ fake, sem exigir o pacote `psycopg` instalado.
 from __future__ import annotations
 
 from collections.abc import Mapping
-from typing import Any, ClassVar, cast
+from typing import TYPE_CHECKING, Any, ClassVar, cast
 
 import pyarrow as pa
 
@@ -30,7 +30,10 @@ from dataipsum.sinks._db_control import (
     resolve_connection_options,
     validated_table,
 )
-from dataipsum.sinks.schema_stubs import load_ddl_for
+from dataipsum.sinks.schema_stubs import load_ddl_for, require_schema
+
+if TYPE_CHECKING:
+    from dataipsum.schema.models import Schema
 
 DIALECT = "postgres"
 
@@ -74,9 +77,15 @@ def _ensure_control_table(cursor: Any, db_schema: str) -> None:
     )
 
 
-def _create_table_if_missing(cursor: Any, table: TableSpec) -> None:
+def _create_tables_if_missing(cursor: Any, schema: Schema) -> None:
+    """`create_tables` (E.3.2): executa o DDL do schema inteiro (`ddl_for`, trilha
+    F), com `CREATE TABLE IF NOT EXISTS` em cada tabela — não só a desta sink,
+    porque `ddl_for` precisa do schema inteiro para resolver as FKs (`ref`), e a
+    ordem topológica que ele já aplica garante que tabelas-pai venham primeiro."""
     ddl_for = load_ddl_for()
-    cursor.execute(ddl_for(table, DIALECT))
+    for statement in ddl_for(schema, DIALECT).strip().split(";\n"):
+        if statement.strip():
+            cursor.execute(statement.replace("CREATE TABLE ", "CREATE TABLE IF NOT EXISTS ", 1))
 
 
 def select_control_status(
@@ -153,7 +162,7 @@ class PostgresSink:
         with self._connection.cursor() as cursor:
             _ensure_control_table(cursor, db_schema)
             if bool(self.options.get("create_tables", False)):
-                _create_table_if_missing(cursor, self._table)
+                _create_tables_if_missing(cursor, require_schema(run))
         self._connection.commit()
 
     def write_chunk(self, chunk_id: int, batch: pa.RecordBatch | object) -> SinkReceipt:

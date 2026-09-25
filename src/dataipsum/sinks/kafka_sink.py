@@ -26,7 +26,7 @@ from dataipsum.contracts.sink import ChunkState, RunContext, SinkCapabilities, S
 from dataipsum.errors import SinkError
 from dataipsum.schema.models import TableSpec
 from dataipsum.sinks._db_control import validated_table
-from dataipsum.sinks.schema_stubs import load_avro_schema_for
+from dataipsum.sinks.schema_stubs import load_avro_schema_for, require_schema
 
 DEFAULT_TOPIC_PREFIX = ""
 DEFAULT_AUTO_REGISTER_SCHEMAS = True
@@ -119,7 +119,7 @@ class KafkaSink:
             _create_topic_if_missing(self.options, self._topic)
 
         avro_schema_for = load_avro_schema_for()
-        schema_dict = avro_schema_for(self._table)
+        schema_dict = avro_schema_for(require_schema(run), self._table.name)
         registry_client = SchemaRegistryClient(_schema_registry_config(self.options))
         auto_register = bool(
             self.options.get("auto_register_schemas", DEFAULT_AUTO_REGISTER_SCHEMAS)
