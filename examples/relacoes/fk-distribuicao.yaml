@@ -1,0 +1,40 @@
+# FK não dirigente com `zipf` + `shuffle` (DD-01 §B.3.3): "produtos" não é
+# filho de "categorias" (não tem `rows_from`); `categoria_id` é só uma
+# referência que escolhe, para cada produto, uma categoria já existente,
+# sem consultar dados gerados. `zipf` concentra produtos em poucas
+# categorias (best-sellers); `shuffle: true` (padrão) evita que a categoria
+# popular seja sempre a de menor id.
+#
+#   uv run python -c "
+#   from dataipsum import load_schema
+#   from dataipsum.relations import RelationsPlanner
+#   import numpy as np
+#   schema = load_schema('examples/relacoes/fk-distribuicao.yaml')
+#   planner = RelationsPlanner()
+#   planner.plan(schema, seed=schema.seed, chunk_size=schema.chunk_size)
+#   fks = planner.row_at('produtos', np.arange(5000), ['categoria_id'])['categoria_id']
+#   print(fks.to_pylist()[:10])
+#   "
+version: 1
+name: fk_distribuicao
+seed: 6
+chunk_size: 1000
+tables:
+  - name: categorias
+    rows: 40
+    primary_key: {columns: [id], strategy: sequence, start: 1}
+    columns:
+      - {name: id, type: int}
+
+  - name: produtos
+    rows: 5000
+    primary_key: {columns: [id], strategy: sequence, start: 1}
+    columns:
+      - {name: id, type: int}
+      - name: categoria_id
+        type: ref
+        null_ratio: 0.05
+        params:
+          table: categorias
+          distribution: {zipf: {s: 1.6}}
+          shuffle: true

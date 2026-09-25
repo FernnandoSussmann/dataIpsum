@@ -1,0 +1,43 @@
+# 1:N (DD-01 §B.7): "pedidos_faixa" usa `range`, "pedidos_zipf" usa `zipf`
+# (cauda longa: poucos usuários concentram a maioria dos pedidos). Em ambos,
+# o número de linhas é *derivado* da cardinalidade, não declarado.
+#
+#   uv run python -c "
+#   from dataipsum import load_schema, validate
+#   from dataipsum.relations import RelationsPlanner
+#   from dataipsum.schema.models import ValidationContext
+#   schema = load_schema('examples/relacoes/um-para-muitos.yaml')
+#   print(validate(schema, ValidationContext(planner=RelationsPlanner())))
+#   plan = RelationsPlanner().plan(schema, seed=schema.seed, chunk_size=schema.chunk_size)
+#   print(plan.tables['pedidos_faixa'].rows, plan.tables['pedidos_zipf'].rows)
+#   "
+version: 1
+name: um_para_muitos
+seed: 1
+chunk_size: 1000
+tables:
+  - name: usuarios
+    rows: 200
+    primary_key: {columns: [id], strategy: sequence, start: 1}
+    columns:
+      - {name: id, type: int}
+
+  - name: pedidos_faixa
+    rows_from:
+      via: usuario_id
+      relation: one_to_many
+      cardinality: {range: {min: 1, max: 5}}
+    primary_key: {columns: [id], strategy: seeded_int, start: 1}
+    columns:
+      - {name: id, type: int}
+      - {name: usuario_id, type: ref, params: {table: usuarios}, null_ratio: 0.0}
+
+  - name: pedidos_zipf
+    rows_from:
+      via: usuario_id
+      relation: one_to_many
+      cardinality: {range: {min: 0, max: 30}, distribution: {zipf: {s: 1.8}}}
+    primary_key: {columns: [id], strategy: seeded_int, start: 1}
+    columns:
+      - {name: id, type: int}
+      - {name: usuario_id, type: ref, params: {table: usuarios}, null_ratio: 0.0}
