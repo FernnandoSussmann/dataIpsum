@@ -53,20 +53,19 @@ class LLMError(DataIpsumError):
     pass
 
 
-# Nomes exigidos literalmente pelo contrato LLMProvider (DD-00 §3.5).
-class ProviderUnavailable(LLMError):  # noqa: N818
+class ProviderUnavailable(LLMError):  # noqa: N818 -- nome exigido pelo contrato LLMProvider (§3.5)
     pass
 
 
-class ProviderRateLimited(LLMError):  # noqa: N818
+class ProviderRateLimited(LLMError):  # noqa: N818 -- nome exigido pelo contrato LLMProvider (§3.5)
     pass
 
 
-class ProviderRefusal(LLMError):  # noqa: N818
+class ProviderRefusal(LLMError):  # noqa: N818 -- nome exigido pelo contrato LLMProvider (§3.5)
     pass
 
 
-class ProviderBadResponse(LLMError):  # noqa: N818
+class ProviderBadResponse(LLMError):  # noqa: N818 -- nome exigido pelo contrato LLMProvider (§3.5)
     pass
 
 

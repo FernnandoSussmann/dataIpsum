@@ -108,6 +108,11 @@ markers = [
 addopts = "--strict-markers"
 testpaths = ["tests"]
 
+# §3.2 pede cobertura >= 85% "por pacote de trilha"; medimos hoje um único
+# número global sobre src/dataipsum, porque só o pacote core (DD-00) tem
+# código real ainda. Quando as trilhas de DD-01/DD-02 chegarem em paralelo,
+# reconsiderar (ex.: um --cov por diretório de trilha), para uma trilha com
+# cobertura baixa não se esconder atrás de outra com cobertura alta.
 [tool.coverage.run]
 source = ["src/dataipsum"]
 branch = true

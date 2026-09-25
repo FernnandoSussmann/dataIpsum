@@ -96,6 +96,9 @@ def array(
     return LogicalType(kind="array", item=item, max_items=max_items, nullable=nullable)
 
 
+# DD-00 §3.5 cita "time32[s|ms]" para o mapeamento de `time`; fixamos "ms" (o
+# schema não tem campo de precisão por coluna hoje). Revisar se uma trilha
+# precisar de resolução de segundo.
 _ARROW_TIME_UNIT_FOR_TIME = "ms"
 
 

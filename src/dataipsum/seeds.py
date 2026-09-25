@@ -32,6 +32,12 @@ FIRST_REJECTION_SLOT: int = 64
 # `FIRST_REJECTION_SLOT`. A chance de rejeição por tentativa é `span / 2**64`,
 # então esse teto nunca é atingido em uso normal; ele existe só para não gerar
 # um laço infinito se algo estiver incorreto a montante.
+#
+# DD-00 §3.6 diz que esse teto é "declarado pelo gerador"; aqui ele é uma
+# constante fixa do módulo porque nenhum `Generator` real existe ainda
+# (escopo da trilha A, DD-01). Quando um gerador precisar de um teto
+# diferente, conectar a `Generator.draw_slots` (já existe no contrato,
+# `contracts/generator.py`) em vez de mudar esta constante global.
 MAX_REJECTION_ATTEMPTS: int = 64
 
 # Faixas até este tamanho usam `uniform() * span` (perde precisão acima de
