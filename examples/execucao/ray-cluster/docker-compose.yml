@@ -1,0 +1,58 @@
+# Cluster Ray local (head + 2 workers) com a MESMA imagem do dataIpsum, `EXTRAS=ray`
+# (DD-01 §D.3.6, §D.10, D.7, M2). Nenhuma porta do Ray (6379, 8265, 10001) é publicada no
+# host: a rede é só interna (`dataipsum-ray`), porque o Ray não tem autenticação própria
+# (DD-01 §D.5 item 6). Um dos workers sobe com `--resources='{"llm": 1}'`, o recurso custom
+# que direciona tarefas com coluna LLM (D.3.6 "agendamento por recursos").
+#
+#   docker build --build-arg EXTRAS=ray -t dataipsum:ray .   # a partir da raiz do repo
+#   docker compose -f examples/execucao/ray-cluster/docker-compose.yml up
+#
+# `tests/docker/test_image_execucao.py` (marcado `docker` + `ray`) sobe este compose e
+# confere que `--executor ray` produz o mesmo sha256 que a execução local (D-06).
+services:
+  ray-head:
+    image: dataipsum:ray
+    entrypoint: ["ray"]
+    command: ["start", "--head", "--port=6379", "--num-cpus=1", "--block"]
+    environment:
+      - RAY_USAGE_STATS_ENABLED=0
+    networks: [dataipsum-ray]
+    tmpfs:
+      - /tmp
+    read_only: true
+
+  ray-worker-cpu:
+    image: dataipsum:ray
+    entrypoint: ["ray"]
+    command: ["start", "--address=ray-head:6379", "--num-cpus=2", "--block"]
+    environment:
+      - RAY_USAGE_STATS_ENABLED=0
+    depends_on: [ray-head]
+    networks: [dataipsum-ray]
+    tmpfs:
+      - /tmp
+    read_only: true
+
+  ray-worker-llm:
+    image: dataipsum:ray
+    entrypoint: ["ray"]
+    command:
+      [
+        "start",
+        "--address=ray-head:6379",
+        "--num-cpus=1",
+        "--resources={\"llm\": 1}",
+        "--block",
+      ]
+    environment:
+      - RAY_USAGE_STATS_ENABLED=0
+    depends_on: [ray-head]
+    networks: [dataipsum-ray]
+    tmpfs:
+      - /tmp
+    read_only: true
+
+networks:
+  dataipsum-ray:
+    driver: bridge
+    internal: true
