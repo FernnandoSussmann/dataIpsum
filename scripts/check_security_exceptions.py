@@ -6,6 +6,7 @@ DD-00 §3.2.1.
 from __future__ import annotations
 
 import argparse
+import re
 import sys
 from dataclasses import dataclass
 from datetime import date, datetime
@@ -91,7 +92,67 @@ def dependency_check_suppression_ids(exceptions: list[SecurityException]) -> lis
     return [exception.id for exception in exceptions if exception.tool == "dependency-check"]
 
 
-def check(path: Path = DEFAULT_PATH, *, today: date | None = None) -> list[str]:
+_NOSEC_PATTERN = re.compile(r"#\s*nosec\b(?:\s+([A-Za-z0-9_,\s]+))?")
+_NOSEMGREP_PATTERN = re.compile(r"#\s*nosemgrep\b(?::\s*([\w,\s-]+))?")
+
+
+def _registered_ids(exceptions: list[SecurityException], tool: str) -> frozenset[str]:
+    return frozenset(exception.id for exception in exceptions if exception.tool == tool)
+
+
+def _unregistered_ids_on_line(
+    path: Path,
+    line_number: int,
+    line: str,
+    label: str,
+    pattern: re.Pattern[str],
+    registered: frozenset[str],
+) -> list[str]:
+    match = pattern.search(line)
+    if match is None:
+        return []
+    ids = [part.strip() for part in (match.group(1) or "").split(",") if part.strip()]
+    if not ids:
+        return [f"{path}:{line_number}: '# {label}' sem ID — não casa com exceção registrada"]
+    return [
+        f"{path}:{line_number}: '# {label} {found_id}' sem entrada correspondente em "
+        "security/exceptions.yaml"
+        for found_id in ids
+        if found_id not in registered
+    ]
+
+
+def find_unregistered_suppressions(src_dir: Path, exceptions: list[SecurityException]) -> list[str]:
+    """`# nosec`/`# nosemgrep` sem exceção registrada correspondente (DD-00 §3.2.1, "Proibido").
+
+    Varredura textual simples (como `test_architecture_no_random.py` faz para
+    `random`), não um parser de comentários real: um `# nosec` dentro de uma
+    string literal geraria um falso positivo. Não há esse caso hoje em `src/`.
+    """
+    bandit_ids = _registered_ids(exceptions, "bandit")
+    semgrep_ids = _registered_ids(exceptions, "semgrep")
+    violations: list[str] = []
+    for path in sorted(src_dir.rglob("*.py")):
+        lines = path.read_text(encoding="utf-8").splitlines()
+        for line_number, line in enumerate(lines, start=1):
+            violations += _unregistered_ids_on_line(
+                path, line_number, line, "nosec", _NOSEC_PATTERN, bandit_ids
+            )
+            violations += _unregistered_ids_on_line(
+                path, line_number, line, "nosemgrep", _NOSEMGREP_PATTERN, semgrep_ids
+            )
+    return violations
+
+
+def check(
+    path: Path = DEFAULT_PATH, *, today: date | None = None, src_dir: Path | None = None
+) -> list[str]:
+    """`src_dir`, quando informado, também roda `find_unregistered_suppressions`.
+
+    Fica fora do padrão (`None`) para não acoplar a validação do arquivo de
+    exceções (testável com qualquer `path` isolado, ex. um `tmp_path`) a uma
+    árvore `src/` fixa; `main()` passa `Path("src")` explicitamente.
+    """
     today = today or date.today()
     raw_exceptions = load_raw_exceptions(path)
     exceptions, errors = parse_exceptions(raw_exceptions)
@@ -100,15 +161,18 @@ def check(path: Path = DEFAULT_PATH, *, today: date | None = None) -> list[str]:
         f"exceção expirada: '{exception.id}' (venceu em {exception.expires})"
         for exception in expired
     )
+    if src_dir is not None and src_dir.exists():
+        errors.extend(find_unregistered_suppressions(src_dir, exceptions))
     return errors
 
 
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--path", type=Path, default=DEFAULT_PATH)
+    parser.add_argument("--src-dir", type=Path, default=Path("src"))
     args = parser.parse_args()
 
-    errors = check(args.path)
+    errors = check(args.path, src_dir=args.src_dir)
     for error in errors:
         print(f"security/exceptions.yaml: {error}", file=sys.stderr)
     return 1 if errors else 0

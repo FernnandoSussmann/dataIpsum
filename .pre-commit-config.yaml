@@ -42,7 +42,7 @@ repos:
 
       - id: bandit
         name: bandit
-        entry: uv run bandit -r src -c pyproject.toml -ll
+        entry: uv run python scripts/run_bandit.py
         language: system
         pass_filenames: false
         types: [python]
@@ -50,9 +50,7 @@ repos:
 
       - id: semgrep
         name: semgrep
-        entry: >-
-          uv run semgrep scan --config p/owasp-top-ten --config p/python
-          --error --metrics=off src
+        entry: uv run python scripts/run_semgrep.py
         language: system
         pass_filenames: false
         types: [python]

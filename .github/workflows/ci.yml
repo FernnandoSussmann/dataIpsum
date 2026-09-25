@@ -1,0 +1,109 @@
+# CI do dataIpsum (DD-00 §3.2.1, §3.12.3).
+#
+# Três jobs, todos obrigatórios em todo PR/push, em todo step de toda trilha:
+#   - quality: os mesmos hooks de pre-commit (gates 1-6 do §3.2), via
+#     `pre-commit run --all-files --hook-stage pre-commit` (critério 25).
+#   - pre-push: os hooks mais pesados de pre-push (OWASP Dependency-Check e
+#     os testes marcados integration/slow), que exigem Docker/rede/chave da
+#     NVD e por isso não ficam no job "quality" (§3.2.1 "Trade-off").
+#   - docker: build da imagem base + smoke test (marker `docker`) + `trivy
+#     image`, obrigatório em todo step (§3.12.3 item 1, critério 30).
+name: CI
+
+on:
+  push:
+    branches: [main, master]
+  pull_request:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  quality:
+    name: quality (pre-commit)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Instala uv
+        uses: astral-sh/setup-uv@v5
+        with:
+          enable-cache: true
+
+      - name: Instala Python 3.12
+        run: uv python install 3.12
+
+      - name: uv sync (base + todos os extras + dev)
+        run: uv sync --frozen --all-extras
+
+      - name: pre-commit run --all-files --hook-stage pre-commit
+        env:
+          # Sem allowlist: nenhum plugin externo é carregado durante a CI.
+          DATAIPSUM_PLUGINS: ""
+        run: uv run pre-commit run --all-files --hook-stage pre-commit --show-diff-on-failure
+
+  pre-push:
+    name: pre-push (integration + dependency-check)
+    runs-on: ubuntu-latest
+    needs: quality
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Instala uv
+        uses: astral-sh/setup-uv@v5
+        with:
+          enable-cache: true
+
+      - name: Instala Python 3.12
+        run: uv python install 3.12
+
+      - name: uv sync (base + todos os extras + dev)
+        run: uv sync --frozen --all-extras
+
+      - name: pytest -m "integration or slow"
+        run: uv run pytest -m "integration or slow"
+
+      - name: OWASP Dependency-Check
+        env:
+          NVD_API_KEY: ${{ secrets.NVD_API_KEY }}
+        run: uv run python scripts/run_dependency_check.py
+
+  docker:
+    name: docker (build + smoke + trivy)
+    runs-on: ubuntu-latest
+    needs: quality
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Instala uv
+        uses: astral-sh/setup-uv@v5
+        with:
+          enable-cache: true
+
+      - name: Instala Python 3.12
+        run: uv python install 3.12
+
+      - name: uv sync (dev, para rodar os testes docker via pytest)
+        run: uv sync --frozen
+
+      - name: render_dockerfile.py --check (sem drift)
+        run: uv run python scripts/render_dockerfile.py --check
+
+      - name: pytest -m docker (build real + smoke test, §3.12.3 item 1)
+        run: uv run pytest -m docker -v
+
+      - name: Build da imagem para o scan do trivy
+        run: |
+          docker build \
+            --build-arg VERSION="$(uv run python -c 'import importlib.metadata as m; print(m.version("dataipsum"))')" \
+            -t dataipsum:ci \
+            .
+
+      - name: trivy image (falha em HIGH/CRITICAL corrigível)
+        uses: aquasecurity/trivy-action@0.28.0
+        with:
+          image-ref: dataipsum:ci
+          severity: HIGH,CRITICAL
+          ignore-unfixed: true
+          exit-code: "1"
