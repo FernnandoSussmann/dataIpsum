@@ -1,0 +1,36 @@
+# Schema de referência da trilha F (DD-02 §F.7), usado pelos scripts `export-*.sh` e
+# `emit-schema.sh` deste diretório. Cópia local e mínima do exemplo do DD-00 §3.3: quando
+# `examples/loja.yaml` (trilha H) existir no repositório integrado, os mesmos comandos
+# funcionam apontando para ele.
+version: 1
+name: loja
+seed: 42
+tables:
+  - name: usuarios
+    rows: 1000
+    primary_key: {columns: [id], strategy: sequence, start: 1}
+    columns:
+      - {name: id, type: int}
+      - {name: nome, type: nome_proprio, max_length: 120}
+      - {name: cpf, type: cpf, format: masked, invalid_ratio: 0.02}
+      - {name: bio, type: string, max_length: 200, null_ratio: 0.1}
+      - {name: criado_em, type: timestamp}
+
+  - name: produtos
+    rows: 200
+    primary_key: {columns: [id], strategy: seeded_uuid}
+    columns:
+      - {name: id, type: uuid}
+      - {name: titulo, type: string, max_length: 80}
+      - {name: preco, type: decimal, params: {precision: 10, scale: 2}}
+
+  - name: pedidos
+    primary_key: {columns: [id], strategy: sequence}
+    rows_from:
+      via: usuario_id
+      relation: one_to_many
+      cardinality: {range: {min: 0, max: 5}}
+    columns:
+      - {name: id, type: int}
+      - {name: usuario_id, type: ref, params: {table: usuarios}}
+      - {name: produto_id, type: ref, params: {table: produtos}}

@@ -1,0 +1,16 @@
+# Compose mínimo só para o exemplo do sink mysql (DD-02, trilha E, E.7).
+services:
+  mysql:
+    image: mysql:8
+    environment:
+      MYSQL_ROOT_PASSWORD: dataipsum
+      MYSQL_USER: dataipsum
+      MYSQL_PASSWORD: dataipsum
+      MYSQL_DATABASE: dataipsum
+    ports:
+      - "127.0.0.1:3306:3306"
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-pdataipsum"]
+      interval: 5s
+      timeout: 3s
+      retries: 20

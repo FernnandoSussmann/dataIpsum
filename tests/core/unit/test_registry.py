@@ -64,7 +64,7 @@ def test_register_builtins_chama_register_dos_pacotes_em_ordem() -> None:
     registry = Registry()
     register_builtins(registry)
     assert registry.generators == {}
-    assert registry.sinks == {}
+    assert set(registry.sinks) == {"csv", "json", "jsonl", "parquet", "postgres", "mysql", "kafka"}
 
 
 def test_resolve_allowed_plugins_sem_env_nao_libera_nada() -> None:
