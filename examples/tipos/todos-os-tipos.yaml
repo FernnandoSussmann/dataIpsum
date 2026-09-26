@@ -1,0 +1,40 @@
+# Um exemplo de cada primitivo da trilha A (DD-01 A.3), com parâmetros não
+# padrão, para servir de referência rápida de sintaxe.
+#
+#   uv run dataipsum generate --schema examples/tipos/todos-os-tipos.yaml --out <dir>
+#
+# (o comando `generate` é implementado pela trilha D; até lá, valide a
+# estrutura do schema — ver examples/tipos/README.md.)
+version: 1
+name: todos_os_tipos
+seed: 1
+tables:
+  - name: amostras
+    rows: 1000
+    primary_key: {columns: [id], strategy: sequence, start: 1}
+    columns:
+      - {name: id, type: int}
+      - {name: apelido, type: string, max_length: 12, params: {min_length: 3, charset: alnum}}
+      - {name: bio, type: string, max_length: 40, params: {charset: lorem}}
+      - {name: sigla, type: char, params: {length: 3, charset: alpha}}
+      - {name: quantidade, type: int, params: {min: 1, max: 500}}
+      - {name: nota, type: float, params: {min: 0.0, max: 10.0, decimals: 1}}
+      - {name: preco, type: decimal, params: {precision: 10, scale: 2, min: "0.00", max: "9999.99"}}
+      - {name: ativo, type: boolean, params: {true_ratio: 0.7}}
+      - {name: nascimento, type: date, params: {min: "1970-01-01", max: "2010-12-31"}}
+      - {name: horario, type: time, params: {min: "08:00:00", max: "18:00:00", precision: ms}}
+      - {name: criado_em, type: timestamp, params: {min: "2024-01-01T00:00:00Z", max: "2024-12-31T23:59:59Z", timezone: true}}
+      - {name: referencia, type: uuid}
+      - name: metadados
+        type: json
+        params:
+          fields:
+            origem: {type: string, max_length: 10}
+            prioridade: {type: int, params: {min: 1, max: 5}}
+          max_depth: 1
+      - name: tags
+        type: array
+        params:
+          items: {type: string, max_length: 8}
+          min_items: 0
+          max_items: 5

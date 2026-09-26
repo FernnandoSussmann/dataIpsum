@@ -1,0 +1,33 @@
+# Bandeiras e BINs de cartão de crédito (DD-01 A.3), para revisão.
+#
+# Cada bandeira declara os prefixos (BINs) aceitos e o comprimento total do
+# número (incluindo o dígito verificador de Luhn). `params.brands` restringe
+# a lista; `params.extra_bins` acrescenta prefixos extras em tempo de schema.
+brands:
+  visa:
+    length: 16
+    prefixes: ["4"]
+  mastercard:
+    length: 16
+    prefixes:
+      - "51"
+      - "52"
+      - "53"
+      - "54"
+      - "55"
+      - "2221-2720"
+  amex:
+    length: 15
+    prefixes: ["34", "37"]
+  elo:
+    length: 16
+    prefixes:
+      - "636368"
+      - "636297"
+      - "504175"
+      - "438935"
+      - "451416"
+      - "627780"
+  hipercard:
+    length: 16
+    prefixes: ["606282"]

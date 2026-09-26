@@ -1,0 +1,21 @@
+# Locale no schema, na tabela e na coluna (DD-01 A.3, "Locale"): a precedência
+# é coluna > tabela > schema (DD-00 §3.3). `cpf`/`rg` só existem em `pt_BR`
+# hoje; usá-los sob outro locale efetivo é erro de validação (DD-01 A-08-like).
+#
+#   uv run dataipsum generate --schema examples/tipos/locale-por-coluna.yaml --out <dir>
+version: 1
+name: locale_por_coluna
+seed: 7
+locale: pt_BR
+tables:
+  - name: pessoas
+    rows: 1000
+    locale: pt_BR
+    primary_key: {columns: [id], strategy: sequence, start: 1}
+    columns:
+      - {name: id, type: int}
+      # herda o locale da tabela (pt_BR)
+      - {name: nome, type: nome_proprio, max_length: 120}
+      - {name: cpf, type: cpf}
+      # sobrescreve o locale só nesta coluna
+      - {name: apelido, type: string, max_length: 20, params: {charset: lorem}, locale: pt_BR}

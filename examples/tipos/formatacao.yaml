@@ -1,0 +1,19 @@
+# `format: masked` × `unmasked` (DD-01 A.3): mesmos dados, duas
+# representações textuais. `masked` é o padrão quando `format` é omitido.
+#
+#   uv run dataipsum generate --schema examples/tipos/formatacao.yaml --out <dir>
+version: 1
+name: formatacao
+seed: 5
+tables:
+  - name: documentos
+    rows: 1000
+    primary_key: {columns: [id], strategy: sequence, start: 1}
+    columns:
+      - {name: id, type: int}
+      - {name: cpf_masked, type: cpf, format: masked}
+      - {name: cpf_unmasked, type: cpf, format: unmasked}
+      - {name: rg_masked, type: rg, format: masked}
+      - {name: rg_unmasked, type: rg, format: unmasked}
+      - {name: cartao_masked, type: cartao_credito, format: masked}
+      - {name: cartao_unmasked, type: cartao_credito, format: unmasked}

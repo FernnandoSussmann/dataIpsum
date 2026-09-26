@@ -1,0 +1,19 @@
+# `null_ratio` em vários tipos (DD-01 A.3): o motor aplica os nulos *depois*
+# do gerador, com o slot reservado 0 — o gerador nunca produz nulos por conta
+# própria (DD-00 §3.6).
+#
+#   uv run dataipsum generate --schema examples/tipos/nulos.yaml --out <dir>
+version: 1
+name: nulos
+seed: 2
+tables:
+  - name: cadastros
+    rows: 5000
+    primary_key: {columns: [id], strategy: sequence, start: 1}
+    columns:
+      - {name: id, type: int}
+      - {name: apelido, type: string, max_length: 30, null_ratio: 0.3}
+      - {name: idade, type: int, params: {min: 18, max: 90}, null_ratio: 0.1}
+      - {name: nascimento, type: date, null_ratio: 0.2}
+      - {name: nota, type: float, params: {min: 0.0, max: 5.0}, null_ratio: 0.15}
+      - {name: nome, type: nome_proprio, max_length: 120, null_ratio: 0.05}
