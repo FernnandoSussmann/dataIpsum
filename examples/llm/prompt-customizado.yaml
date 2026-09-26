@@ -1,0 +1,45 @@
+# Override de `prompt`/`system` (DD-01 §C.7, §C.3.2): `{autor_id.nome}` e `{produto_id.titulo}`
+# navegam até o pai pela coluna `ref`; chaves (PK/FK) só são usadas como CAMINHO — o valor
+# delas nunca entra no texto.
+version: 1
+name: prompt_customizado
+seed: 42
+llm:
+  default_provider: local
+  providers:
+    local: {kind: ollama, base_url: http://localhost:11434, model: llama3.1:8b}
+
+tables:
+  - name: usuarios
+    rows: 20
+    primary_key: {columns: [id], strategy: sequence, start: 1}
+    columns:
+      - {name: id, type: int}
+      - {name: nome, type: nome_proprio, max_length: 120}
+
+  - name: produtos
+    rows: 10
+    primary_key: {columns: [id], strategy: sequence, start: 1}
+    columns:
+      - {name: id, type: int}
+      - {name: titulo, type: string, max_length: 80}
+
+  - name: resenhas
+    primary_key: {columns: [id], strategy: sequence}
+    rows_from:
+      via: autor_id
+      relation: one_to_many
+      cardinality: {range: {min: 0, max: 3}}
+    columns:
+      - {name: id, type: int}
+      - {name: autor_id, type: ref, params: {table: usuarios}}
+      - {name: produto_id, type: ref, params: {table: produtos}}
+      - name: texto
+        type: llm_post
+        max_length: 300
+        params:
+          provider: local
+          system: "Você escreve resenhas de produtos em português do Brasil, em tom natural."
+          prompt: "Escreva uma resenha curta de {autor_id.nome} sobre o produto {produto_id.titulo}."
+          mode: unique
+          toxicity: block

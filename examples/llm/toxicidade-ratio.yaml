@@ -1,0 +1,31 @@
+# `toxicity: ratio` (DD-01 §C.7, §C.3.5): mantém X% do conteúdo intencionalmente ofensivo, para
+# testar pipelines de moderação a jusante. O prompt ofensivo é fixo (não sobrescrevível) e proíbe
+# discurso de ódio, ameaças, assédio sexual e conteúdo envolvendo menores.
+#
+# O classificador completo (lista de palavras + Detoxify) requer o extra `[toxicity]`; sem ele,
+# só a lista de palavras roda, com um aviso. `llm.toxicity` (classifier/threshold globais) NÃO
+# existe ainda no schema do DD-00 (`LLMConfig` só tem `default_provider`/`providers`/`retry`);
+# até um PR de mudança de contrato adicionar esse campo, o classificador usado é sempre `auto`
+# com `threshold: 0.5` (ver `dataipsum.llm.toxicity.resolve_classifier`).
+version: 1
+name: toxicidade_ratio
+seed: 42
+llm:
+  default_provider: local
+  providers:
+    local: {kind: ollama, base_url: http://localhost:11434, model: llama3.1:8b}
+
+tables:
+  - name: pedidos
+    rows: 10000
+    primary_key: {columns: [id], strategy: sequence, start: 1}
+    columns:
+      - {name: id, type: int}
+      - name: comentario
+        type: llm_post
+        max_length: 200
+        params:
+          provider: local
+          mode: unique
+          toxicity: ratio
+          toxicity_ratio: 0.1
