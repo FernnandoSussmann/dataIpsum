@@ -32,6 +32,7 @@ from dataipsum.errors import SchemaError, ValidationError
 from dataipsum.execution.llm_engine import build_llm_engine
 from dataipsum.llm import filler as llm_filler
 from dataipsum.llm import threads as llm_threads
+from dataipsum.schema.models import effective_locale
 from dataipsum.seeds import (
     INVALID_SLOT,
     NULL_SLOT,
@@ -427,14 +428,14 @@ def build_record_batch(
     ordered_names = _dependency_order(remaining, registry)
     columns_by_name = {column.name: column for column in table.columns}
 
-    locale = table.locale or schema.locale
-    ctx = _WorkerContext(locale, planner, arrays)
-
     for name in ordered_names:
         column = columns_by_name[name]
         generator = _instantiate_generator(registry, column.type)
         col_seed = seed_column(table_seed, name)
         chunk_seed = seed_chunk(col_seed, chunk.id)
+        # precedência coluna > tabela > schema (DD-00 §effective_locale), resolvida
+        # por coluna: duas colunas da mesma tabela podem declarar locales diferentes.
+        ctx = _WorkerContext(effective_locale(schema, table, column), planner, arrays)
         arrays[name] = _apply_invalid_and_null(generator, column, chunk_seed, row_indices, ctx)
 
     all_llm_columns = [column for column in table.columns if column.is_llm]

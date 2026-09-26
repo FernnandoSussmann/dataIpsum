@@ -193,7 +193,7 @@ def test_toxicity_ratio_proporcao_alvo(parent_child_schema) -> None:
     column = posts.columns[-1].model_copy(
         update={"params": {"provider": "local", "toxicity": "ratio", "toxicity_ratio": 0.1}}
     )
-    n = 2000
+    n = 10_000  # DD-01 §C.6 pede 10^4 amostras para o teste de proporção de toxicidade
 
     class _ObedientProvider:
         supports_json_schema = True

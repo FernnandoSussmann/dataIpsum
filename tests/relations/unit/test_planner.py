@@ -602,6 +602,36 @@ def test_row_at_delega_para_gerador_fake_de_coluna_comum() -> None:
     assert values["id"].to_pylist() == [1, 2]
 
 
+def test_fk_nunca_le_dados_gerados_de_outra_tabela(monkeypatch: pytest.MonkeyPatch) -> None:
+    """DD-01 §B.8 B-05: gerar uma FK nunca lê arquivos ou dados de outras
+    tabelas — o valor vem só de `pk_at`/índice, nunca de um sink/leitor. Um
+    `open()` bloqueado durante o planejamento e a geração de um chunk isolado
+    de "pedidos" (sem nunca ter "gerado" nada de "usuarios") prova isso: se
+    `row_at`/`pk_at` precisassem ler dados já escritos, essa chamada falharia."""
+    import builtins
+
+    def _blocked_open(*args: object, **kwargs: object) -> object:
+        raise AssertionError("row_at/pk_at não deveria abrir nenhum arquivo")
+
+    schema = _load(
+        [
+            _root_table("usuarios", 10_000),
+            _one_to_many_table("pedidos", "usuarios", card_min=1, card_max=3),
+        ]
+    )
+    planner = RelationsPlanner()
+    run_plan = planner.plan(schema, seed=42, chunk_size=64)
+    chunk = run_plan.tables["pedidos"].chunks[5]
+
+    monkeypatch.setattr(builtins, "open", _blocked_open)
+    indices = np.arange(chunk.first_row, chunk.first_row + chunk.rows)
+    fks = planner.row_at("pedidos", indices, ["parent_id"])["parent_id"].to_pylist()
+    monkeypatch.undo()
+
+    parent_pks = set(planner.pk_at("usuarios", np.arange(10_000)).to_pylist())
+    assert set(fks) <= parent_pks
+
+
 def test_cache_lru_nao_altera_o_resultado() -> None:
     schema = _load(
         [

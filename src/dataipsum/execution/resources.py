@@ -9,6 +9,7 @@ fica em `default_sampler`/`MonitorLoop`, usados pelo driver; os testes exercitam
 
 from __future__ import annotations
 
+import logging
 import math
 import os
 import threading
@@ -17,6 +18,8 @@ from collections.abc import Callable
 from dataclasses import dataclass, field
 
 from dataipsum.errors import ResourceLimitError
+
+logger = logging.getLogger("dataipsum.execution.resources")
 
 CPU_MAX_RANGE = (10.0, 100.0)
 MEM_MAX_RANGE = (10.0, 95.0)
@@ -96,10 +99,20 @@ class ResourceMonitor:
 
     def _update_pause(self, sample: ResourceSample) -> None:
         pause_threshold = min(CRITICAL_ABS_MAX, self.mem_max + CRITICAL_MARGIN)
-        if sample.mem_percent > pause_threshold:
+        if sample.mem_percent > pause_threshold and not self._paused:
             self._paused = True
+            logger.info(
+                "pausando submissão de chunks: RAM %.1f%% > %.1f%%",
+                sample.mem_percent,
+                pause_threshold,
+            )
         elif self._paused and sample.mem_percent < self.mem_max:
             self._paused = False
+            logger.info(
+                "retomando submissão de chunks: RAM %.1f%% < %.1f%%",
+                sample.mem_percent,
+                self.mem_max,
+            )
 
     def _update_severe_pressure(self, sample: ResourceSample, now: float) -> None:
         if sample.mem_percent <= CRITICAL_ABS_MAX:
@@ -110,6 +123,11 @@ class ResourceMonitor:
             return
         elapsed = now - self._severe_since
         if self._concurrency <= 1 and elapsed >= CRITICAL_DURATION_SECONDS:
+            logger.error(
+                "RAM em %.1f%% por %.0fs com concorrência 1: abortando (ResourceLimitError)",
+                sample.mem_percent,
+                elapsed,
+            )
             raise ResourceLimitError(
                 "RAM acima de 95% por 30s seguidos com concorrência 1. "
                 "Reduza 'chunk_size' para diminuir o pico de memória por chunk."
@@ -126,15 +144,32 @@ class ResourceMonitor:
             self._over_streak += 1
             cooldown_active = self._cooldown_until is not None and now < self._cooldown_until
             if self._over_streak >= OVER_THRESHOLD_STREAK and not cooldown_active:
+                previous = self._concurrency
                 self._concurrency = max(1, self._concurrency // 2)
                 self._cooldown_until = now + COOLDOWN_SECONDS
                 self._over_streak = 0
+                logger.info(
+                    "reduzindo concorrência de %d para %d (CPU %.1f%%, RAM %.1f%%)",
+                    previous,
+                    self._concurrency,
+                    sample.cpu_percent,
+                    sample.mem_percent,
+                )
         elif slack:
             self._over_streak = 0
             self._slack_streak += 1
             if self._slack_streak >= SLACK_STREAK:
+                previous = self._concurrency
                 self._concurrency = min(self._effective_max_workers, self._concurrency + 1)
                 self._slack_streak = 0
+                if self._concurrency != previous:
+                    logger.info(
+                        "aumentando concorrência de %d para %d (CPU %.1f%%, RAM %.1f%%)",
+                        previous,
+                        self._concurrency,
+                        sample.cpu_percent,
+                        sample.mem_percent,
+                    )
         else:
             self._over_streak = 0
             self._slack_streak = 0

@@ -4,7 +4,14 @@ from __future__ import annotations
 
 from pathlib import Path
 
+import httpx
+import pytest
+
+from dataipsum.contracts.llm import LLMRequest
 from dataipsum.llm.cache import CacheKeyParts, DiskCache, cache_key, evict_to_limit, write_entry
+from dataipsum.llm.filler import LLMEngine
+from dataipsum.llm.providers.openai_compatible import OpenAICompatibleProvider
+from dataipsum.llm.toxicity.wordlist import WordlistClassifier
 
 
 def _parts(**overrides: object) -> CacheKeyParts:
@@ -78,3 +85,48 @@ def test_no_cache_desliga_get_e_put(tmp_path: Path) -> None:
     cache.put(key, text="nunca deveria persistir", model="m")
     assert cache.get(key) is None
     assert not any(tmp_path.rglob("*.json"))
+
+
+def test_chave_de_api_nunca_aparece_no_cache_em_disco(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """DD-01 §C.5 item 1: uma chave de API injetada por `*_env` é usada de verdade
+    na requisição (prova de que o teste não é um no-op), mas nunca chega ao cache
+    em disco — nem na chave (já coberto acima), nem no valor gravado."""
+    secret = "sk-super-secreta-nao-pode-vazar"
+    monkeypatch.setenv("FAKE_LLM_API_KEY", secret)
+
+    captured_headers: dict[str, str] = {}
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        captured_headers.update(request.headers)
+        return httpx.Response(
+            200,
+            json={"choices": [{"message": {"content": "texto gerado sem segredo"}}]},
+        )
+
+    provider = OpenAICompatibleProvider(
+        model="m",
+        base_url="http://localhost:8000",
+        api_key_env="FAKE_LLM_API_KEY",
+        client=httpx.Client(transport=httpx.MockTransport(handler)),
+    )
+    engine = LLMEngine(
+        providers={"local": provider},
+        toxicity_classifier=WordlistClassifier(),
+        cache=DiskCache(cache_dir=tmp_path),
+    )
+    req = LLMRequest(system="sistema", prompt="prompt", max_tokens=64, temperature=0.0, seed=1)
+
+    text = engine.call("local", req, seed_chunk=1)
+
+    # a chamada de verdade usou o segredo (não é um no-op)
+    assert captured_headers.get("authorization") == f"Bearer {secret}"
+    assert text == "texto gerado sem segredo"
+
+    # nada gravado no cache_dir contém o segredo
+    cache_files = list(tmp_path.rglob("*.json"))
+    assert cache_files, "esperava ao menos uma entrada de cache gravada"
+    for path in cache_files:
+        assert secret not in path.read_text(encoding="utf-8")
+        assert secret not in str(path)

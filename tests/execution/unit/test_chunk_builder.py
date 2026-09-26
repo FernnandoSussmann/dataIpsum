@@ -59,10 +59,22 @@ class _DependentGenerator(_ConstGenerator):
         return pa.array([f"e{value}" for value in same["id"].to_pylist()])
 
 
+@dataclass
+class _LocaleSpyGenerator(_ConstGenerator):
+    """Devolve `ctx.locale` como valor, para testar a precedência coluna >
+    tabela > schema (DD-00 `effective_locale`, DD-01 §A.3/A.6)."""
+
+    name: str = "locale_spy"
+
+    def generate(self, column: object, batch: RowBatch, draws: object, ctx: object) -> pa.Array:
+        return pa.array([ctx.locale] * len(batch.rows))
+
+
 def _registry() -> Registry:
     registry = Registry()
     registry.register_generator("const", _ConstGenerator)
     registry.register_generator("dependent", _DependentGenerator)
+    registry.register_generator("locale_spy", _LocaleSpyGenerator)
     return registry
 
 
@@ -102,6 +114,38 @@ def test_ordem_de_colunas_segue_a_declaracao_do_schema() -> None:
     )
     assert batch.schema.names == ["id", "apelido"]
     assert llm_pending is False
+
+
+def test_locale_efetivo_segue_precedencia_coluna_tabela_schema() -> None:
+    """DD-00 `effective_locale`, DD-01 §A.3/A.6: coluna > tabela > schema. Cada
+    coluna resolve o locale de forma independente — uma tabela com duas colunas
+    `locale_spy`, uma sem override e outra com `locale: "fr_FR"`, deve produzir
+    valores diferentes para cada uma."""
+    schema = load_schema(
+        {
+            "version": 1,
+            "name": "loja",
+            "locale": "pt_BR",
+            "tables": [
+                {
+                    "name": "usuarios",
+                    "rows": 3,
+                    "locale": "en_US",
+                    "primary_key": {"columns": ["id"], "strategy": "sequence", "start": 0},
+                    "columns": [
+                        {"name": "id", "type": "const"},
+                        {"name": "herdado_da_tabela", "type": "locale_spy"},
+                        {"name": "override_na_coluna", "type": "locale_spy", "locale": "fr_FR"},
+                    ],
+                }
+            ],
+        }
+    )
+    batch, _flags, _pending, _sw = build_record_batch(
+        _task(schema, rows=3), planner=FakePlanner(), registry=_registry()
+    )
+    assert batch.column("herdado_da_tabela").to_pylist() == ["en_US"] * 3
+    assert batch.column("override_na_coluna").to_pylist() == ["fr_FR"] * 3
 
 
 def test_pk_vem_do_planner_e_nunca_e_nula() -> None:

@@ -24,6 +24,33 @@ tables:
         type: email
         max_length: 254
         params: {name_column: nome, unique: true}
+      # Colunas abaixo só para exercitar os tipos de A.4 que não apareceriam de
+      # outra forma no schema de referência (I-01: "todos os tipos"); não têm
+      # papel de negócio na integração.
+      - {name: sigla_uf, type: char, params: {length: 2, charset: alpha}}
+      - {name: pontuacao, type: float, params: {min: 0.0, max: 10.0, decimals: 2}}
+      - {name: saldo, type: decimal, params: {precision: 10, scale: 2, min: "0.00", max: "9999.99"}}
+      - {name: ativo, type: boolean, params: {true_ratio: 0.8}}
+      - {name: nascimento, type: date, params: {min: "1970-01-01", max: "2005-12-31"}}
+      - {name: horario_preferido, type: time, params: {min: "08:00:00", max: "20:00:00"}}
+      - {name: criado_em, type: timestamp, params: {min: "2024-01-01T00:00:00Z", max: "2024-12-31T23:59:59Z"}}
+      - {name: sessao_id, type: uuid}
+      - name: preferencias
+        type: json
+        params:
+          fields:
+            tema: {type: string, max_length: 10}
+            notificacoes: {type: boolean}
+          max_depth: 1
+      - name: interesses
+        type: array
+        params:
+          items: {type: string, max_length: 8}
+          min_items: 0
+          max_items: 3
+      - {name: cpf, type: cpf}
+      - {name: rg, type: rg}
+      - {name: cartao, type: cartao_credito}
 
   - name: produtos
     rows: 12

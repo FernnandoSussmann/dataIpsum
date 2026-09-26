@@ -87,3 +87,39 @@ def test_sem_erro_fatal_se_ram_volta_a_ficar_normal_antes_de_30s() -> None:
     monitor.observe(
         ResourceSample(cpu_percent=10.0, mem_percent=96.0), now=31.0
     )  # só 20s desde now=11
+
+
+def test_transicoes_sao_logadas_em_info(caplog: pytest.LogCaptureFixture) -> None:
+    """DD-01 §D.3.4: "As transições são logadas (nível INFO)"."""
+    caplog.set_level("INFO", logger="dataipsum.execution.resources")
+    monitor = ResourceMonitor(cpu_max=70.0, mem_max=60.0, cpu_count=8)
+
+    monitor.observe(ResourceSample(cpu_percent=95.0, mem_percent=10.0), now=0.0)
+    monitor.observe(ResourceSample(cpu_percent=95.0, mem_percent=10.0), now=1.0)
+    assert any("reduzindo concorrência" in r.message for r in caplog.records)
+
+    caplog.clear()
+    monitor.observe(ResourceSample(cpu_percent=10.0, mem_percent=90.0), now=2.0)
+    assert any("pausando submissão" in r.message for r in caplog.records)
+    assert monitor.paused is True
+
+    caplog.clear()
+    monitor.observe(ResourceSample(cpu_percent=10.0, mem_percent=10.0), now=3.0)
+    assert any("retomando submissão" in r.message for r in caplog.records)
+    assert monitor.paused is False
+
+    caplog.clear()
+    monitor.observe(ResourceSample(cpu_percent=10.0, mem_percent=10.0), now=4.0)
+    monitor.observe(ResourceSample(cpu_percent=10.0, mem_percent=10.0), now=5.0)
+    monitor.observe(ResourceSample(cpu_percent=10.0, mem_percent=10.0), now=6.0)
+    assert any("aumentando concorrência" in r.message for r in caplog.records)
+
+
+def test_erro_fatal_e_logado_em_error(caplog: pytest.LogCaptureFixture) -> None:
+    caplog.set_level("INFO", logger="dataipsum.execution.resources")
+    monitor = ResourceMonitor(cpu_max=70.0, mem_max=60.0, cpu_count=1)
+    monitor.observe(ResourceSample(cpu_percent=10.0, mem_percent=96.0), now=0.0)
+    monitor.observe(ResourceSample(cpu_percent=10.0, mem_percent=96.0), now=20.0)
+    with pytest.raises(ResourceLimitError):
+        monitor.observe(ResourceSample(cpu_percent=10.0, mem_percent=96.0), now=31.0)
+    assert any(r.levelname == "ERROR" for r in caplog.records)
