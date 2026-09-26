@@ -1,0 +1,48 @@
+# `max_concurrency` por provedor LLM (DD-01 §D.3.3, §D.5 item 5, D.7).
+#
+# O `LLMLimiter` é um semáforo entre processos (`multiprocessing.Manager().BoundedSemaphore`),
+# um por provedor, criado com o `max_concurrency` declarado aqui. Qualquer worker que
+# precise chamar esse provedor faz `with executor.llm_limiter(nome, max_concurrency):`
+# antes da chamada; o `acquire` tem timeout de 600s (nunca trava para sempre — D.5 item 5).
+#
+# Duas seções `llm.providers` com `max_concurrency` diferentes: mesmo que o executor
+# tenha 8 workers de CPU, no máximo 2 chamadas simultâneas batem no provedor "local"
+# (ex.: um único servidor Ollama) e no máximo 4 no provedor "nuvem".
+#
+#   uv run dataipsum generate --schema examples/execucao/llm-concorrencia.yaml --out /tmp/saida-llm
+#
+# D-05 (o número de chamadas LLM simultâneas nunca passa de `max_concurrency`) é
+# medido, com `FakeLLM` instrumentado, em
+# `tests/execution/unit/test_local_executor.py::test_llm_limiter_nunca_ultrapassa_max_concurrency`.
+version: 1
+name: llm_concorrencia
+seed: 42
+llm:
+  default_provider: local
+  providers:
+    local:
+      kind: ollama
+      base_url: http://ollama:11434
+      model: llama3.1:8b
+      max_concurrency: 2
+      timeout_s: 120
+    nuvem:
+      kind: anthropic
+      model: claude-haiku-4-5
+      api_key_env: ANTHROPIC_API_KEY
+      max_concurrency: 4
+tables:
+  - name: usuarios
+    rows: 500
+    primary_key: { columns: [id], strategy: sequence, start: 1 }
+    columns:
+      - { name: id, type: int }
+      - { name: nome, type: nome_proprio, max_length: 120 }
+      - name: bio
+        type: llm_post
+        max_length: 200
+        params:
+          provider: local
+          prompt: "Escreva uma bio curta para {nome}."
+          mode: unique
+          on_failure: pending
