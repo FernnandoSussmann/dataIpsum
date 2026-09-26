@@ -3,9 +3,10 @@
 #   docker compose -f docker/compose.dev.yaml up -d ollama
 #   ollama pull llama3.1:8b
 #
-#   uv run dataipsum generate --schema examples/llm/ollama-local.yaml --out /tmp/saida-ollama
+#   uv run dataipsum gen examples/llm/ollama-local.yaml -o /tmp/saida-ollama
 #
-# (o comando `generate` é implementado pela trilha D; até lá, valide a forma do schema com
+# (o motor já está implementado, trilha D/S5; a CLI `gen` é da trilha G, DD-02, e
+# não está nesta branch — até lá, valide a forma do schema com
 # `dataipsum.load_schema`/`dataipsum.validate`.)
 version: 1
 name: ollama_local

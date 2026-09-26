@@ -1,7 +1,7 @@
 # `brands`, `weights` e `extra_bins` de `cartao_credito` (DD-01 A.3). As
 # bandeiras e BINs padrão ficam em `src/dataipsum/types/data/bins.yaml`.
 #
-#   uv run dataipsum generate --schema examples/tipos/cartoes-bandeiras.yaml --out <dir>
+#   uv run dataipsum gen examples/tipos/cartoes-bandeiras.yaml -o <dir>
 version: 1
 name: cartoes_bandeiras
 seed: 6

@@ -9,7 +9,7 @@
 # tenha 8 workers de CPU, no máximo 2 chamadas simultâneas batem no provedor "local"
 # (ex.: um único servidor Ollama) e no máximo 4 no provedor "nuvem".
 #
-#   uv run dataipsum generate --schema examples/execucao/llm-concorrencia.yaml --out /tmp/saida-llm
+#   uv run dataipsum gen examples/execucao/llm-concorrencia.yaml -o /tmp/saida-llm
 #
 # D-05 (o número de chamadas LLM simultâneas nunca passa de `max_concurrency`) é
 # medido, com `FakeLLM` instrumentado, em

@@ -11,23 +11,21 @@ set -euo pipefail
 
 cd "$(git rev-parse --show-toplevel)"
 
-# O comando `generate` é implementado pela trilha D (`dataipsum.execution.orchestrator`)
+# O comando `gen` é implementado pela trilha D (`dataipsum.execution.orchestrator`)
 # e exposto na CLI pela trilha G (DD-02); até lá, este exemplo documenta o comando
 # esperado e o que observar no log.
 #
-#   uv run dataipsum generate \
-#     --schema examples/core/seed-fixa.yaml \
-#     --out /tmp/saida-tetos \
+#   uv run dataipsum gen examples/core/seed-fixa.yaml \
+#     -o /tmp/saida-tetos \
 #     --cpu-max 50 \
 #     --mem-max 40
 #
 # Saída esperada (nível INFO, DD-01 §D.5 item 8 — só contagens, sem dados de linha):
-#   INFO dataipsum.execution.resources: monitor: concorrência inicial = 4 (cpu_max=50%)
-#   INFO dataipsum.execution.resources: monitor: CPU acima do teto por 2 amostras; concorrência 4 -> 2
-#   INFO dataipsum.execution.resources: monitor: folga por 3 amostras; concorrência 2 -> 3
+#   INFO dataipsum.execution.resources: reduzindo concorrência de 4 para 2 (CPU 95.0%, RAM 10.0%)
+#   INFO dataipsum.execution.resources: aumentando concorrência de 2 para 3 (CPU 5.0%, RAM 10.0%)
 #
-# Para reproduzir o monitor isoladamente, sem depender do `generate` de ponta a
-# ponta (que precisa das trilhas A/B/C), use `ResourceMonitor` diretamente:
+# Para reproduzir o monitor isoladamente, sem depender do `gen` de ponta a
+# ponta (que precisa da CLI da trilha G, DD-02), use `ResourceMonitor` diretamente:
 uv run python - <<'PY'
 from dataipsum.execution.resources import ResourceMonitor, ResourceSample
 

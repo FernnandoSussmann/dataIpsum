@@ -4,7 +4,7 @@
 # acrescenta o índice global da linha (base36) para garantir endereços
 # válidos distintos.
 #
-#   uv run dataipsum generate --schema examples/tipos/email-enderecos.yaml --out <dir>
+#   uv run dataipsum gen examples/tipos/email-enderecos.yaml -o <dir>
 version: 1
 name: email_enderecos
 seed: 4

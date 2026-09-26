@@ -2,7 +2,7 @@
 # do gerador, com o slot reservado 0 — o gerador nunca produz nulos por conta
 # própria (DD-00 §3.6).
 #
-#   uv run dataipsum generate --schema examples/tipos/nulos.yaml --out <dir>
+#   uv run dataipsum gen examples/tipos/nulos.yaml -o <dir>
 version: 1
 name: nulos
 seed: 2

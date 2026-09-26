@@ -8,5 +8,5 @@ set -euo pipefail
 OUT_DIR="${1:-/tmp/saida-placeholder}"
 
 echo "Retomando a execução em '${OUT_DIR}'..."
-uv run dataipsum resume --out "${OUT_DIR}"
+uv run dataipsum resume "${OUT_DIR}"
 echo "Pronto: confira o manifesto em '${OUT_DIR}/_manifest.json' (status deve ser 'done')."

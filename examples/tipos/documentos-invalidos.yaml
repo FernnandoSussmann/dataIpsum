@@ -3,7 +3,7 @@
 # inválidos (dígito verificador/Luhn errado), úteis para testar pipelines de
 # validação a jusante.
 #
-#   uv run dataipsum generate --schema examples/tipos/documentos-invalidos.yaml --out <dir>
+#   uv run dataipsum gen examples/tipos/documentos-invalidos.yaml -o <dir>
 version: 1
 name: documentos_invalidos
 seed: 3

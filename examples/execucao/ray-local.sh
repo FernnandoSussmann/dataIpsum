@@ -18,7 +18,7 @@ fi
 
 RAY_USAGE_STATS_ENABLED=0 uv run ray start --head --num-cpus 2
 
-# O comando `generate` é implementado pela trilha D; a flag `--executor ray` seleciona
+# O comando `gen` é implementado pela trilha D; a flag `--executor ray` seleciona
 # `execution.ray_executor.RayExecutor` (D.3.6). Até a CLI existir (trilha G), o executor
 # Ray pode ser exercitado diretamente:
 uv run python - <<'PY'

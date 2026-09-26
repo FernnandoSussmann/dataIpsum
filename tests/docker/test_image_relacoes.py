@@ -4,7 +4,7 @@ Marcado `docker`: constrói a imagem de verdade e não roda no job de testes
 rápidos (mesmo padrão de `tests/docker/test_image_base.py`).
 
 A trilha B não tem fragmento próprio (§B.10: "Fragmento: nenhum") e a CLI
-completa (`dataipsum generate ...`) é de outra trilha (G, DD-02) — ainda não
+completa (`dataipsum gen ...`) é de outra trilha (G, DD-02) — ainda não
 existe no runtime desta imagem. Por isso o smoke test aqui roda a
 biblioteca diretamente dentro do container (`python -c ...`), com
 `examples/relacoes/um-para-muitos.yaml` montado em `/schemas` (somente

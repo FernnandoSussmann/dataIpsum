@@ -1,7 +1,7 @@
 # `format: masked` × `unmasked` (DD-01 A.3): mesmos dados, duas
 # representações textuais. `masked` é o padrão quando `format` é omitido.
 #
-#   uv run dataipsum generate --schema examples/tipos/formatacao.yaml --out <dir>
+#   uv run dataipsum gen examples/tipos/formatacao.yaml -o <dir>
 version: 1
 name: formatacao
 seed: 5

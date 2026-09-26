@@ -1,10 +1,10 @@
 # Um exemplo de cada primitivo da trilha A (DD-01 A.3), com parâmetros não
 # padrão, para servir de referência rápida de sintaxe.
 #
-#   uv run dataipsum generate --schema examples/tipos/todos-os-tipos.yaml --out <dir>
+#   uv run dataipsum gen examples/tipos/todos-os-tipos.yaml -o <dir>
 #
-# (o comando `generate` é implementado pela trilha D; até lá, valide a
-# estrutura do schema — ver examples/tipos/README.md.)
+# (a CLI `gen` é da trilha G, DD-02, e não está nesta branch; até lá, valide
+# a estrutura do schema — ver examples/tipos/README.md.)
 version: 1
 name: todos_os_tipos
 seed: 1

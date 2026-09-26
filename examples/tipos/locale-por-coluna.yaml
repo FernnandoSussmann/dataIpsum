@@ -2,7 +2,7 @@
 # é coluna > tabela > schema (DD-00 §3.3). `cpf`/`rg` só existem em `pt_BR`
 # hoje; usá-los sob outro locale efetivo é erro de validação (DD-01 A-08-like).
 #
-#   uv run dataipsum generate --schema examples/tipos/locale-por-coluna.yaml --out <dir>
+#   uv run dataipsum gen examples/tipos/locale-por-coluna.yaml -o <dir>
 version: 1
 name: locale_por_coluna
 seed: 7

@@ -1,7 +1,7 @@
 # Provedor `openai_compatible` (DD-01 §C.7): vLLM, LM Studio ou qualquer servidor que exponha
 # `POST /v1/chat/completions`. Host local: `http://` é aceito sem `allow_insecure_http`.
 #
-#   uv run dataipsum generate --schema examples/llm/openai-compativel.yaml --out /tmp/saida-vllm
+#   uv run dataipsum gen examples/llm/openai-compativel.yaml -o /tmp/saida-vllm
 version: 1
 name: openai_compativel
 seed: 42

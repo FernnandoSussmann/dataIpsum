@@ -11,10 +11,10 @@ set -euo pipefail
 
 cd "$(git rev-parse --show-toplevel)"
 
-# O comando `generate`/`resume` é implementado pela trilha D e exposto na CLI pela
+# O comando `gen`/`resume` é implementado pela trilha D e exposto na CLI pela
 # trilha G (DD-02); até lá, este exemplo documenta o fluxo esperado:
 #
-#   uv run dataipsum generate --schema examples/core/limites.yaml --out /tmp/saida-resume &
+#   uv run dataipsum gen examples/core/limites.yaml -o /tmp/saida-resume &
 #   PID=$!
 #   sleep 2 && kill -INT "$PID"   # simula Ctrl+C
 #   wait "$PID" || true

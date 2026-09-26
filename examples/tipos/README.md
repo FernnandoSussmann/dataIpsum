@@ -1,20 +1,21 @@
 # Exemplos da trilha A — Tipos primitivos e campos com regra (DD-01)
 
 Cada exemplo abaixo demonstra uma feature opcional dos geradores da trilha A
-(§3.2 "Regra transversal: exemplos de features opcionais" do DD-00). O comando
-`dataipsum gen`/`generate` é implementado pela trilha D (execução); até lá,
-valide a estrutura e a semântica de cada schema com o snippet no fim deste
-arquivo.
+(§3.2 "Regra transversal: exemplos de features opcionais" do DD-00). O motor
+(`dataipsum.api.generate`) já está implementado (trilha D, DD-01 §S5); a CLI
+`dataipsum gen` em si é da trilha G (DD-02) e não está nesta branch. Até o
+merge das duas, valide a estrutura e a semântica de cada schema com o
+snippet no fim deste arquivo.
 
 | Arquivo | Demonstra | Comando | Saída esperada |
 |---|---|---|---|
-| [`todos-os-tipos.yaml`](todos-os-tipos.yaml) | Uma coluna de cada primitivo (`string`, `char`, `int`, `float`, `decimal`, `boolean`, `date`, `time`, `timestamp`, `uuid`, `json`, `array`), com parâmetros não padrão | `dataipsum gen --schema examples/tipos/todos-os-tipos.yaml --out <dir>` | 1000 linhas na tabela `amostras`, uma coluna por tipo |
-| [`nulos.yaml`](nulos.yaml) | `null_ratio` em vários tipos | `dataipsum gen --schema examples/tipos/nulos.yaml --out <dir>` | colunas com a fração de nulos declarada; nenhuma coluna de PK tem nulo |
-| [`documentos-invalidos.yaml`](documentos-invalidos.yaml) | `invalid_ratio` em `cpf`, `rg` e `cartao_credito`, para testar pipelines de validação a jusante | `dataipsum gen --schema examples/tipos/documentos-invalidos.yaml --out <dir>` | ~10% dos valores de cada coluna falham na validação correspondente (`is_valid_cpf`, `is_valid_rg_sp`, `luhn_is_valid`) |
-| [`email-enderecos.yaml`](email-enderecos.yaml) | `email` com `name_column`, `unique: true`, `domains` customizados e `invalid_ratio` | `dataipsum gen --schema examples/tipos/email-enderecos.yaml --out <dir>` | a parte local de `email` deriva do nome da mesma linha (`nome`); endereços válidos são distintos entre si |
-| [`formatacao.yaml`](formatacao.yaml) | `format: masked` × `unmasked` no mesmo dado | `dataipsum gen --schema examples/tipos/formatacao.yaml --out <dir>` | `cpf_masked` em `000.000.000-00`, `cpf_unmasked` em `00000000000` (e o mesmo para `rg`/`cartao_credito`) |
-| [`cartoes-bandeiras.yaml`](cartoes-bandeiras.yaml) | `brands`, `weights` (ponderação por bandeira) e `extra_bins` (bandeira própria via BIN extra) | `dataipsum gen --schema examples/tipos/cartoes-bandeiras.yaml --out <dir>` | `cartao_principal` predominantemente Visa (~85%); `cartao_private_label` sempre com prefixo `987654` |
-| [`locale-por-coluna.yaml`](locale-por-coluna.yaml) | Locale declarado no schema, na tabela e na coluna (precedência coluna > tabela > schema) | `dataipsum gen --schema examples/tipos/locale-por-coluna.yaml --out <dir>` | `nome`/`cpf` usam o locale `pt_BR` herdado da tabela |
+| [`todos-os-tipos.yaml`](todos-os-tipos.yaml) | Uma coluna de cada primitivo (`string`, `char`, `int`, `float`, `decimal`, `boolean`, `date`, `time`, `timestamp`, `uuid`, `json`, `array`), com parâmetros não padrão | `dataipsum gen examples/tipos/todos-os-tipos.yaml -o <dir>` | 1000 linhas na tabela `amostras`, uma coluna por tipo |
+| [`nulos.yaml`](nulos.yaml) | `null_ratio` em vários tipos | `dataipsum gen examples/tipos/nulos.yaml -o <dir>` | colunas com a fração de nulos declarada; nenhuma coluna de PK tem nulo |
+| [`documentos-invalidos.yaml`](documentos-invalidos.yaml) | `invalid_ratio` em `cpf`, `rg` e `cartao_credito`, para testar pipelines de validação a jusante | `dataipsum gen examples/tipos/documentos-invalidos.yaml -o <dir>` | ~10% dos valores de cada coluna falham na validação correspondente (`is_valid_cpf`, `is_valid_rg_sp`, `luhn_is_valid`) |
+| [`email-enderecos.yaml`](email-enderecos.yaml) | `email` com `name_column`, `unique: true`, `domains` customizados e `invalid_ratio` | `dataipsum gen examples/tipos/email-enderecos.yaml -o <dir>` | a parte local de `email` deriva do nome da mesma linha (`nome`); endereços válidos são distintos entre si |
+| [`formatacao.yaml`](formatacao.yaml) | `format: masked` × `unmasked` no mesmo dado | `dataipsum gen examples/tipos/formatacao.yaml -o <dir>` | `cpf_masked` em `000.000.000-00`, `cpf_unmasked` em `00000000000` (e o mesmo para `rg`/`cartao_credito`) |
+| [`cartoes-bandeiras.yaml`](cartoes-bandeiras.yaml) | `brands`, `weights` (ponderação por bandeira) e `extra_bins` (bandeira própria via BIN extra) | `dataipsum gen examples/tipos/cartoes-bandeiras.yaml -o <dir>` | `cartao_principal` predominantemente Visa (~85%); `cartao_private_label` sempre com prefixo `987654` |
+| [`locale-por-coluna.yaml`](locale-por-coluna.yaml) | Locale declarado no schema, na tabela e na coluna (precedência coluna > tabela > schema) | `dataipsum gen examples/tipos/locale-por-coluna.yaml -o <dir>` | `nome`/`cpf` usam o locale `pt_BR` herdado da tabela |
 
 ## Aviso de segurança (DD-01 A.5, guardrail 7)
 

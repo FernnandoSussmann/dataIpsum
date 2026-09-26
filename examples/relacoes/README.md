@@ -3,9 +3,10 @@
 Cada arquivo abaixo demonstra uma feature opcional da trilha B (relações,
 chaves e determinismo). Todos carregam com `dataipsum.load_schema` e
 planejam com `dataipsum.relations.RelationsPlanner` sem depender de nenhuma
-outra trilha (`tests/relations/unit/test_examples.py` valida isso). O
-comando `generate`/CLI completo é de outras trilhas (D e G); até lá, os
-comandos abaixo usam a API Python diretamente.
+outra trilha (`tests/relations/unit/test_examples.py` valida isso). A CLI
+completa (`dataipsum gen`/`dataipsum resume`) é da trilha G (DD-02) e não
+está nesta branch; até o merge das duas, os comandos abaixo usam a API
+Python diretamente.
 
 | Arquivo | Demonstra | Saída esperada |
 |---|---|---|

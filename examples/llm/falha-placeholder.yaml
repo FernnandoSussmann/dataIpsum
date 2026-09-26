@@ -4,7 +4,7 @@
 # atomicamente, e zera `is_placeholder`.
 #
 #   # provedor "local" fora do ar (ninguém escutando em :11434):
-#   uv run dataipsum generate --schema examples/llm/falha-placeholder.yaml --out /tmp/saida-placeholder
+#   uv run dataipsum gen examples/llm/falha-placeholder.yaml -o /tmp/saida-placeholder
 #   # confirme: arquivos existem, is_placeholder=true, status pending_llm no manifesto
 #
 #   # suba o provedor de verdade e rode examples/llm/resume.sh

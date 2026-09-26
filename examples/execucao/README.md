@@ -2,10 +2,11 @@
 
 Cada exemplo abaixo demonstra uma feature opcional da trilha D: orquestrador,
 executor local, monitor adaptativo, `LLMLimiter`, `resume` e o executor Ray (M2).
-O comando `dataipsum generate`/`dataipsum resume` é implementado por
-`dataipsum.execution.orchestrator` (`generate`/`resume`) e exposto na CLI pela
-trilha G (DD-02); até lá, cada exemplo mostra o comando esperado **e** como
-exercitar a mesma lógica hoje, direto pela biblioteca ou pelos testes.
+O motor (`dataipsum.api.generate`/`resume`, sobre `dataipsum.execution.orchestrator`)
+já está implementado nesta branch (DD-01 §S5); a CLI `dataipsum gen`/`dataipsum resume`
+em si é da trilha G (DD-02) e não está nesta branch. Até o merge das duas, cada
+exemplo mostra o comando esperado **e** como exercitar a mesma lógica hoje,
+direto pela biblioteca ou pelos testes.
 
 | Arquivo | Demonstra | Como rodar hoje |
 |---|---|---|
@@ -17,21 +18,22 @@ exercitar a mesma lógica hoje, direto pela biblioteca ou pelos testes.
 
 ## Por que "como rodar hoje" e não só o comando da CLI
 
-A trilha D roda em paralelo com as trilhas A (tipos), B (relações) e C (LLM) —
-DD-01 §0. Sem um `Planner` real (trilha B) nem geradores reais (trilha A), um
-`generate()` de ponta a ponta com um schema de verdade não é possível ainda
-neste worktree. Por isso os exemplos usam:
+A trilha D foi escrita em paralelo com as trilhas A (tipos), B (relações) e C
+(LLM) — DD-01 §0 — e os exemplos abaixo foram criados nessa fase, contra
+fakes. A integração S5 já trocou os fakes pelas implementações reais
+(`dataipsum.api.generate`/`resume` funcionam de ponta a ponta, ver
+`tests/integration/motor/`), mas a CLI (trilha G, DD-02) ainda não está nesta
+branch, então os comandos `dataipsum gen`/`dataipsum resume` comentados em
+cada exemplo continuam sendo o comando **esperado**, a rodar depois do merge
+com o DD-02. Por isso os exemplos também mostram como exercitar a mesma
+lógica hoje, direto pela biblioteca ou pelos testes:
 
-- `ResourceMonitor`/`ProcessLLMLimiter` diretamente (não dependem de A/B/C);
+- `ResourceMonitor`/`ProcessLLMLimiter` diretamente;
 - `dataipsum.execution.orchestrator._execute`/`generate`/`resume` com um
   `FakeExecutor`/`FakePlanner` (`dataipsum.testing`), exatamente como
-  `tests/execution/unit/test_orchestrator.py`;
-- para o Ray (M2), o `RayExecutor` real, que só precisa de um cluster Ray vivo
-  (não dos geradores da trilha A).
-
-Quando a integração S5 (DD-01 §3) trocar os fakes pelas implementações reais,
-os comandos `dataipsum generate --schema ... --out ...` comentados em cada
-exemplo passam a funcionar sem alterações.
+  `tests/execution/unit/test_orchestrator.py`, ou com o `RelationsPlanner`/
+  `LocalExecutor` reais, como `tests/integration/motor/`;
+- para o Ray (M2), o `RayExecutor` real, que só precisa de um cluster Ray vivo.
 
 ## M1 vs. M2
 
