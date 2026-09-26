@@ -46,6 +46,7 @@ from dataipsum.manifest import (
     write_manifest_atomic,
 )
 from dataipsum.schema.loader import load_schema
+from dataipsum.schema.models import ValidationContext, normalize_schema
 
 if TYPE_CHECKING:
     from collections.abc import Callable
@@ -369,6 +370,20 @@ def _execute(
     )
 
 
+def normalize_schema_for_generation(schema: Schema, planner: Planner) -> Schema:
+    """Acrescenta as colunas implícitas do `Planner` (ex.: `seq`/`autor`/`timestamp`/`texto`/
+    `is_offensive`/`is_placeholder` de tabelas `thread`, DD-01 §B.3.6) a `table.columns` antes de
+    planejar/gerar (integração S5): sem isso, `Planner.pk_at`/`row_at`/`parent_index_for_ref` e o
+    construtor de chunk (trilha D) não enxergam essas colunas pelo nome (`row_at` resolve pelo
+    `ColumnSpec` guardado em `table.columns`, não por uma lista à parte).
+
+    Só as colunas implícitas *do planner* entram aqui (`ValidationContext(generators={})`):
+    nenhum gerador de `dataipsum.types` declara `implied_columns` hoje (checado por `grep`), e
+    `orchestrator.generate` não recebe o `Registry` — só o `Planner`. Se isso mudar, esta função
+    precisa de um `registry`/`generators` também."""
+    return normalize_schema(schema, ValidationContext(planner=planner))
+
+
 def generate(
     schema: Schema,
     options: RunOptions,
@@ -383,6 +398,7 @@ def generate(
 ) -> OrchestratorResult:
     """Executa uma geração nova (DD-01 §D.3.1)."""
     check_output_dir_for_generate(options.out_dir)
+    schema = normalize_schema_for_generation(schema, planner)
 
     seed = options.seed if options.seed is not None else seeds_module.random_seed()
     seed_source: SeedSource = "user" if options.seed is not None else "random"

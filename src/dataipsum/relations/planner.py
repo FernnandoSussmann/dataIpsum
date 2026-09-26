@@ -670,14 +670,34 @@ class RelationsPlanner:
         self, state: _TableState, column: ColumnSpec, indices: NDArray[np.int64]
     ) -> pa.Array:
         target_table = str(column.params["table"])
+        parent_indices = self._ref_parent_indices(state, column, indices)
+        return self.pk_at(target_table, parent_indices)
+
+    def _ref_parent_indices(
+        self, state: _TableState, column: ColumnSpec, indices: NDArray[np.int64]
+    ) -> NDArray[np.int64]:
         info = state.relation_info
         if isinstance(info, _ManyToManyInfo) and column.name == info.pair_column:
-            parent_indices = self._many_to_many_pair_indices(state, info, indices)
-        elif getattr(info, "via_column", None) == column.name:
-            parent_indices = self._dirigente_parent_indices(state, indices)
-        else:
-            parent_indices = self._non_dirigente_parent_indices(state, column, indices)
-        return self.pk_at(target_table, parent_indices)
+            return self._many_to_many_pair_indices(state, info, indices)
+        if getattr(info, "via_column", None) == column.name:
+            return self._dirigente_parent_indices(state, indices)
+        return self._non_dirigente_parent_indices(state, column, indices)
+
+    def parent_index_for_ref(
+        self, table: str, column: str, indices: NDArray[np.int64]
+    ) -> NDArray[np.int64]:
+        """Índice, na tabela alvo da coluna `ref` `column` de `table`, de cada linha `indices`
+        (linhas da própria `table`). Não faz parte do `Planner` mínimo do DD-00: é uma extensão
+        decidida na integração do motor (DD-01 §S5), porque `row_at`/`pk_at` só devolvem o
+        *valor* de PK do pai, nunca o índice — e colunas LLM que referenciam `{ref.coluna}`
+        (§C.3.2) precisam do índice para recalcular *outras* colunas determinísticas do pai via
+        `row_at(tabela_alvo, indice, colunas)`."""
+        state = self._require_table(table)
+        indices = np.asarray(indices, dtype=np.int64)
+        column_spec = state.columns_by_name.get(column)
+        if column_spec is None or column_spec.type != "ref":
+            raise PlanError(f"'{table}.{column}' não é uma coluna 'ref'")
+        return self._ref_parent_indices(state, column_spec, indices)
 
     # -------------------------------------------------------- thread helpers
 

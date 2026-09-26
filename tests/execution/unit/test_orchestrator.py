@@ -466,6 +466,9 @@ def test_resume_reexecuta_so_os_nao_done(tmp_path: Path) -> None:
         )
 
     class _StubPlanner:
+        def implied_columns(self, table: Any) -> list[Any]:
+            return []
+
         def plan(self, schema: Any, seed: int, chunk_size: int) -> RunPlan:
             return RunPlan(order=("usuarios",), tables={"usuarios": _table_plan([10, 10])})
 
@@ -501,6 +504,9 @@ def test_resume_llm_only_reexecuta_so_pending_llm(tmp_path: Path) -> None:
         )
 
     class _StubPlanner:
+        def implied_columns(self, table: Any) -> list[Any]:
+            return []
+
         def plan(self, schema: Any, seed: int, chunk_size: int) -> RunPlan:
             return RunPlan(order=("usuarios",), tables={"usuarios": _table_plan([10, 10])})
 
@@ -527,6 +533,9 @@ def test_resume_recusa_hash_de_schema_diferente(tmp_path: Path) -> None:
     options = _run_options(tmp_path)
 
     class _StubPlanner:
+        def implied_columns(self, table: Any) -> list[Any]:
+            return []
+
         def plan(self, schema: Any, seed: int, chunk_size: int) -> RunPlan:
             return RunPlan(order=("usuarios",), tables={"usuarios": _table_plan([10])})
 
@@ -546,6 +555,9 @@ def test_resume_nao_replaneja(tmp_path: Path) -> None:
     options = _run_options(tmp_path)
 
     class _StubPlanner:
+        def implied_columns(self, table: Any) -> list[Any]:
+            return []
+
         def plan(self, schema: Any, seed: int, chunk_size: int) -> RunPlan:
             return RunPlan(order=("usuarios",), tables={"usuarios": _table_plan([10])})
 

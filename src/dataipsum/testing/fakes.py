@@ -169,6 +169,11 @@ class FakePlanner:
     ) -> dict[str, pa.Array]:
         raise NotImplementedError("FakePlanner só suporta tabelas raiz, sem rows_from")
 
+    def parent_index_for_ref(
+        self, table: str, column: str, indices: NDArray[np.int64]
+    ) -> NDArray[np.int64]:
+        raise NotImplementedError("FakePlanner só suporta tabelas raiz, sem rows_from")
+
 
 @dataclass
 class SchemaBuilder:

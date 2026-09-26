@@ -97,7 +97,7 @@ def _task(schema: object, *, first_row: int = 0, rows: int = 6) -> ChunkTask:
 
 def test_ordem_de_colunas_segue_a_declaracao_do_schema() -> None:
     schema = load_schema(_schema_dict())
-    batch, _flags, llm_pending = build_record_batch(
+    batch, _flags, llm_pending, _should_write = build_record_batch(
         _task(schema), planner=FakePlanner(), registry=_registry()
     )
     assert batch.schema.names == ["id", "apelido"]
@@ -106,7 +106,7 @@ def test_ordem_de_colunas_segue_a_declaracao_do_schema() -> None:
 
 def test_pk_vem_do_planner_e_nunca_e_nula() -> None:
     schema = load_schema(_schema_dict(null_ratio=1.0))
-    batch, _flags, _pending = build_record_batch(
+    batch, _flags, _pending, _should_write = build_record_batch(
         _task(schema), planner=FakePlanner(), registry=_registry()
     )
     assert batch.column("id").to_pylist() == [0, 1, 2, 3, 4, 5]
@@ -115,7 +115,7 @@ def test_pk_vem_do_planner_e_nunca_e_nula() -> None:
 
 def test_dependente_ve_a_coluna_ja_gerada_no_mesmo_chunk() -> None:
     schema = load_schema(_schema_dict())
-    batch, _flags, _pending = build_record_batch(
+    batch, _flags, _pending, _should_write = build_record_batch(
         _task(schema), planner=FakePlanner(), registry=_registry()
     )
     assert batch.column("apelido").to_pylist() == ["e0", "e1", "e2", "e3", "e4", "e5"]
@@ -123,7 +123,7 @@ def test_dependente_ve_a_coluna_ja_gerada_no_mesmo_chunk() -> None:
 
 def test_nulos_sao_aplicados_depois_do_gerador() -> None:
     schema = load_schema(_schema_dict(null_ratio=1.0))
-    batch, _flags, _pending = build_record_batch(
+    batch, _flags, _pending, _should_write = build_record_batch(
         _task(schema), planner=FakePlanner(), registry=_registry()
     )
     # null_ratio=1.0 força todas as células a nulo, mesmo que o gerador tenha produzido valor.
@@ -132,10 +132,10 @@ def test_nulos_sao_aplicados_depois_do_gerador() -> None:
 
 def test_chunk_reconstruido_e_deterministico() -> None:
     schema = load_schema(_schema_dict())
-    batch1, _flags1, _pending1 = build_record_batch(
+    batch1, _flags1, _pending1, _sw1 = build_record_batch(
         _task(schema), planner=FakePlanner(), registry=_registry()
     )
-    batch2, _flags2, _pending2 = build_record_batch(
+    batch2, _flags2, _pending2, _sw2 = build_record_batch(
         _task(schema), planner=FakePlanner(), registry=_registry()
     )
     assert batch1.equals(batch2)
@@ -195,3 +195,53 @@ def test_build_chunk_escreve_no_sink_e_devolve_sha256() -> None:
     assert result.rows == 6
     assert result.sink_ref == "fake://0"
     assert 0 in sink.batches
+
+
+@dataclass
+class _CompositePkPlanner(FakePlanner):
+    """PK composta (`many_to_many`, DD-01 §B.3.5): `pk_at` devolve um `StructArray` com um
+    campo por coluna da chave — regressão de um bug em que `build_record_batch` atribuía o
+    mesmo `StructArray` inteiro a cada nome da chave, em vez de decompor os campos."""
+
+    def pk_at(self, table: str, indices: object) -> pa.Array:  # type: ignore[override]
+        rows = pa.array(indices).to_pylist()
+        return pa.StructArray.from_arrays(
+            [pa.array(rows, type=pa.int64()), pa.array([r * 10 for r in rows], type=pa.int64())],
+            names=["a_id", "b_id"],
+        )
+
+
+def test_pk_composta_e_decomposta_em_colunas_proprias() -> None:
+    data = {
+        "version": 1,
+        "tables": [
+            {
+                "name": "ponte",
+                "rows_from": {
+                    "via": "a_id",
+                    "relation": "many_to_many",
+                    "pair": "b_id",
+                    "cardinality": {"range": {"min": 1, "max": 1}},
+                },
+                "primary_key": {"columns": ["a_id", "b_id"], "strategy": "composite"},
+                "columns": [
+                    {"name": "a_id", "type": "ref", "params": {"table": "ponte"}},
+                    {"name": "b_id", "type": "ref", "params": {"table": "ponte"}},
+                ],
+            }
+        ],
+    }
+    schema = load_schema(data)
+    task = ChunkTask(
+        table="ponte",
+        chunk_spec=ChunkSpec(id=0, first_row=0, rows=4),
+        schema=schema,
+        root_seed=1,
+        sink_options={},
+        run_options={},
+    )
+    batch, _flags, _pending, _sw = build_record_batch(
+        task, planner=_CompositePkPlanner(), registry=_registry()
+    )
+    assert batch.column("a_id").to_pylist() == [0, 1, 2, 3]
+    assert batch.column("b_id").to_pylist() == [0, 10, 20, 30]

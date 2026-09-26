@@ -90,3 +90,11 @@ class Planner(Protocol):
     def row_at(
         self, table: str, indices: NDArray[np.int64], columns: list[str]
     ) -> dict[str, pa.Array]: ...
+
+    def parent_index_for_ref(
+        self, table: str, column: str, indices: NDArray[np.int64]
+    ) -> NDArray[np.int64]:
+        """Índice, na tabela alvo da coluna `ref` `column`, de cada linha `indices` de `table`
+        (extensão da integração S5, DD-01 §3: usada para montar o contexto de colunas LLM que
+        referenciam `{ref.coluna}` do pai, DD-01 §C.3.2)."""
+        raise NotImplementedError

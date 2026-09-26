@@ -1,0 +1,73 @@
+# Schema de referência da integração do motor (DD-01 §3, S5): exercita tipos (A), relações
+# 1:N/N:N/thread (B) e uma coluna `llm_*` + o `texto` de thread (C), tudo sob `LocalExecutor`
+# (D). `FakeSink`/`FakeLLM`/`FakeToxicity` (DD-00 §3.11) substituem sink/provedor reais em
+# `tests/integration/motor/conftest.py` — este schema não depende do DD-02.
+version: 1
+name: motor_referencia
+seed: 2026
+chunk_size: 100
+llm:
+  default_provider: local
+  providers:
+    local:
+      kind: ollama
+      model: golden-model
+
+tables:
+  - name: usuarios
+    rows: 24
+    primary_key: {columns: [id], strategy: sequence, start: 1}
+    columns:
+      - {name: id, type: int}
+      - {name: nome, type: nome_proprio, max_length: 120}
+      - name: email
+        type: email
+        max_length: 254
+        params: {name_column: nome, unique: true}
+
+  - name: produtos
+    rows: 12
+    primary_key: {columns: [id], strategy: sequence, start: 1}
+    columns:
+      - {name: id, type: int}
+      - {name: titulo, type: string, max_length: 40, params: {charset: lorem}}
+      - name: descricao
+        type: llm_post
+        max_length: 280
+        params: {provider: local, mode: unique, toxicity: allow, on_failure: pending}
+
+  - name: pedidos
+    rows_from:
+      via: usuario_id
+      relation: one_to_many
+      cardinality: {range: {min: 1, max: 4}}
+    primary_key: {columns: [id], strategy: seeded_int, start: 1}
+    columns:
+      - {name: id, type: int}
+      - {name: usuario_id, type: ref, params: {table: usuarios}}
+
+  - name: pedido_produto
+    rows_from:
+      via: pedido_id
+      relation: many_to_many
+      pair: produto_id
+      cardinality: {range: {min: 1, max: 3}}
+    primary_key: {columns: [pedido_id, produto_id], strategy: composite}
+    columns:
+      - {name: pedido_id, type: ref, params: {table: pedidos}}
+      - {name: produto_id, type: ref, params: {table: produtos}}
+
+  - name: mensagens
+    rows_from:
+      via: pedido_id
+      relation: thread
+      cardinality: {range: {min: 2, max: 4}}
+    thread:
+      participants: {table: usuarios, count: 3, label_column: nome}
+      start: {min: "2024-01-01T00:00:00", max: "2024-01-05T00:00:00"}
+      gap_seconds: {min: 5, max: 600}
+      llm: {provider: local, toxicity: allow, on_failure: pending, max_length: 280}
+    primary_key: {columns: [id], strategy: seeded_int, start: 1}
+    columns:
+      - {name: id, type: int}
+      - {name: pedido_id, type: ref, params: {table: pedidos}}
