@@ -20,7 +20,7 @@ def test_version_imprime_a_versao_do_pacote() -> None:
     assert result.stdout.strip()
 
 
-def test_generate_levanta_not_implemented() -> None:
-    result = runner.invoke(app, ["generate"])
+def test_gen_levanta_not_implemented() -> None:
+    result = runner.invoke(app, ["gen"])
     assert result.exit_code != 0
     assert isinstance(result.exception, NotImplementedError)
