@@ -1,0 +1,50 @@
+# Provedor padrão Ollama (DD-01 §C.7): `kind: ollama`, local, sem chave de API.
+# Usa o compose de dev do DD-02 (trilha G) para subir um `ollama` local:
+#   docker compose -f docker/compose.dev.yaml up -d ollama
+#   ollama pull llama3.1:8b
+#
+#   uv run dataipsum gen examples/llm/ollama-local.yaml -o /tmp/saida-ollama
+#
+# (o motor já está implementado, trilha D/S5; a CLI `gen` é da trilha G, DD-02, e
+# não está nesta branch — até lá, valide a forma do schema com
+# `dataipsum.load_schema`/`dataipsum.validate`.)
+version: 1
+name: ollama_local
+seed: 42
+llm:
+  default_provider: local
+  providers:
+    local:
+      kind: ollama
+      base_url: http://localhost:11434
+      model: llama3.1:8b
+      max_concurrency: 2
+      timeout_s: 120
+      temperature: 0
+  retry: {max_attempts: 5, base_delay_s: 1, max_delay_s: 60}
+
+tables:
+  - name: usuarios
+    rows: 20
+    primary_key: {columns: [id], strategy: sequence, start: 1}
+    columns:
+      - {name: id, type: int}
+      - {name: nome, type: nome_proprio, max_length: 120}
+
+  - name: posts
+    primary_key: {columns: [id], strategy: sequence}
+    rows_from:
+      via: autor_id
+      relation: one_to_many
+      cardinality: {range: {min: 0, max: 5}}
+    columns:
+      - {name: id, type: int}
+      - {name: autor_id, type: ref, params: {table: usuarios}}
+      - name: conteudo
+        type: llm_post
+        max_length: 280
+        params:
+          provider: local
+          mode: unique
+          toxicity: block
+          on_failure: pending

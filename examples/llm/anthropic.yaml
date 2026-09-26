@@ -1,0 +1,34 @@
+# Provedor de nuvem `anthropic` (DD-01 §C.7): requer o extra `[anthropic]`
+# (`uv sync --extra anthropic`) e a variável de ambiente ANTHROPIC_API_KEY definida
+# (nunca a chave em si no schema: só o NOME da variável, em `api_key_env`).
+#
+#   export ANTHROPIC_API_KEY=...
+#   uv run dataipsum gen examples/llm/anthropic.yaml -o /tmp/saida-anthropic
+version: 1
+name: anthropic_nuvem
+seed: 42
+llm:
+  default_provider: nuvem
+  providers:
+    nuvem:
+      kind: anthropic
+      model: claude-3-5-haiku-latest
+      api_key_env: ANTHROPIC_API_KEY
+      max_concurrency: 4
+      timeout_s: 60
+  retry: {max_attempts: 5, base_delay_s: 2, max_delay_s: 30}
+
+tables:
+  - name: usuarios
+    rows: 10
+    primary_key: {columns: [id], strategy: sequence, start: 1}
+    columns:
+      - {name: id, type: int}
+      - {name: nome, type: nome_proprio, max_length: 120}
+      - name: bio
+        type: llm_post
+        max_length: 200
+        params:
+          provider: nuvem
+          mode: unique
+          toxicity: block

@@ -3,9 +3,12 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Literal, Protocol
+from typing import TYPE_CHECKING, Literal, Protocol
 
 import pyarrow as pa
+
+if TYPE_CHECKING:
+    from dataipsum.schema.models import Schema
 
 ChunkState = Literal["absent", "committed"]
 
@@ -15,6 +18,20 @@ class RunContext:
     run_id: str
     out_dir: str
     seed: int
+    schema: Schema | None = None
+    """Schema completo da execução (DD-02 §0, seam E↔F; sincronizado com a
+    branch feat/dd-02-saidas-interfaces-e-entrega para as duas branches
+    convergirem no mesmo contrato).
+
+    Sinks recebem só a própria `TableSpec` em `open()`; `ddl_for`/`avro_schema`
+    (trilha F, DD-02) precisam do `Schema` inteiro para resolver colunas `ref`
+    contra a tabela referenciada. `None` quando o chamador não tem o schema
+    disponível — nesse caso, os sinks que precisam dele levantam `SinkError`
+    com uma mensagem clara em vez de falhar com um erro de atributo/tipo
+    obscuro. O orquestrador desta branch (DD-01, `execution.worker.run_chunk`)
+    ainda não popula este campo porque nenhum sink real está registrado aqui
+    (gap do DD-02, fora do escopo do DD-01) — ver `dataipsum.api`.
+    """
 
 
 @dataclass(frozen=True)

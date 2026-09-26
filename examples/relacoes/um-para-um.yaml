@@ -1,0 +1,31 @@
+# 1:1 com cobertura parcial (DD-01 §B.3.4, B-03): "perfis" cobre 70% dos
+# usuários (`round(0.7 * 1000) = 700` linhas), e a FK é única por construção
+# (bijeção via permutação Feistel).
+#
+#   uv run python -c "
+#   from dataipsum import load_schema
+#   from dataipsum.relations import RelationsPlanner
+#   schema = load_schema('examples/relacoes/um-para-um.yaml')
+#   plan = RelationsPlanner().plan(schema, seed=schema.seed, chunk_size=schema.chunk_size)
+#   print(plan.tables['perfis'].rows)  # 700
+#   "
+version: 1
+name: um_para_um
+seed: 2
+chunk_size: 1000
+tables:
+  - name: usuarios
+    rows: 1000
+    primary_key: {columns: [id], strategy: sequence, start: 1}
+    columns:
+      - {name: id, type: int}
+
+  - name: perfis
+    rows_from:
+      via: usuario_id
+      relation: one_to_one
+      coverage: 0.7
+    primary_key: {columns: [id], strategy: seeded_int, start: 1}
+    columns:
+      - {name: id, type: int}
+      - {name: usuario_id, type: ref, params: {table: usuarios}, null_ratio: 0.0}

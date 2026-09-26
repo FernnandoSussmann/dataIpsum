@@ -29,7 +29,7 @@ def main(
 
 
 @app.command()
-def generate() -> None:
+def gen() -> None:
     """Gera dados a partir de um schema. Implementado pela trilha G (DD-02)."""
     raise NotImplementedError("trilha G (DD-02)")
 

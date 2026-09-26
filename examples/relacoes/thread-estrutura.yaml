@@ -1,0 +1,54 @@
+# Mecanismo de thread (DD-01 §B.3.6): a trilha B cuida de `seq`, `autor` e
+# `timestamp` (determinísticos); `texto`, `is_offensive` e `is_placeholder`
+# são preenchidos pela trilha C (LLM), a partir do bloco `thread.llm` abaixo
+# — aqui só documentado, não usado por esta trilha. Rodar o
+# `RelationsPlanner` sozinho não gera `texto` (levantaria `PlanError`, por
+# ser não determinístico); `seq`/`autor`/`timestamp` já funcionam hoje.
+#
+#   uv run python -c "
+#   from dataipsum import load_schema
+#   from dataipsum.relations import RelationsPlanner
+#   from dataipsum.schema.models import ValidationContext, normalize_schema
+#   import numpy as np
+#   schema = load_schema('examples/relacoes/thread-estrutura.yaml')
+#   planner = RelationsPlanner()
+#   schema = normalize_schema(schema, ValidationContext(planner=planner))  # acrescenta seq/autor/... /texto
+#   plan = planner.plan(schema, seed=schema.seed, chunk_size=schema.chunk_size)
+#   n = plan.tables['mensagens'].rows
+#   valores = planner.row_at('mensagens', np.arange(n), ['thread_id', 'seq', 'autor', 'timestamp'])
+#   print(n, valores['seq'].to_pylist()[:12])
+#   "
+version: 1
+name: thread_estrutura
+seed: 7
+chunk_size: 1000
+tables:
+  - name: pessoas
+    rows: 30
+    primary_key: {columns: [id], strategy: sequence, start: 1}
+    columns:
+      - {name: id, type: int}
+
+  - name: conversas
+    rows: 10
+    primary_key: {columns: [id], strategy: sequence, start: 1}
+    columns:
+      - {name: id, type: int}
+
+  - name: mensagens
+    rows_from:
+      via: thread_id
+      relation: thread
+      cardinality: {range: {min: 4, max: 12}}
+    thread:
+      participants: {table: pessoas, count: 3, label_column: id}
+      start: {min: "2024-01-01T00:00:00", max: "2024-01-31T00:00:00"}
+      gap_seconds: {min: 5, max: 3600}
+      llm:
+        provider: ollama
+        model: llama3.1
+        max_length: 280
+    primary_key: {columns: [id], strategy: seeded_int, start: 1}
+    columns:
+      - {name: id, type: int}
+      - {name: thread_id, type: ref, params: {table: conversas}, null_ratio: 0.0}

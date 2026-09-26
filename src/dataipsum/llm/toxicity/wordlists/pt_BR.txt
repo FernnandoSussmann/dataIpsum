@@ -1,0 +1,29 @@
+# Lista de palavras ofensivas pt-BR (DD-01 §C.3.5).
+# Uma palavra por linha, minúsculas e sem acento (a normalização é feita em tempo de execução,
+# então acentos aqui são só para legibilidade humana do arquivo-fonte). Linhas começadas com
+# '#' são comentário.
+arrombado
+bosta
+buceta
+burro
+caralho
+corno
+cretino
+desgraca
+desgracado
+escroto
+estupido
+foda-se
+fdp
+idiota
+imbecil
+lixo
+merda
+otario
+piranha
+porra
+puta
+retardado
+vagabundo
+viado
+vsf

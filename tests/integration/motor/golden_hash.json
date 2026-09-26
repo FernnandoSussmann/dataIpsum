@@ -1,0 +1,22 @@
+{
+  "chunks": {
+    "mensagens": {
+      "0": "37912f5755339d7eec80cac05cfeaad76857e5d7630efb06e8b975ad513b7fea",
+      "1": "fb7285d528100ab8bc6d1306bb5a12137952cacc6696f750525a9c001bd1ae52"
+    },
+    "pedido_produto": {
+      "0": "58c69a05c7c36e160d5ace8cac2bef1bdca3845ffdede5cff96545410c2db425",
+      "1": "ed56020ca7210b7e7c6c2acd7cc2dfc87f3441add17052f04af02322618d904b"
+    },
+    "pedidos": {
+      "0": "84e84b9857426a347f0dd810cb2e740f349519fbed92b7df86f5d422a7549462"
+    },
+    "produtos": {
+      "0": "843d8b56859f55cf72dbc3521d3929ae6c336d7d61c0b62bbdb7608cdce10e26"
+    },
+    "usuarios": {
+      "0": "b19c4f5237a9076defd7d9994326597bc089d3812e92db9aac240ee71c72b797"
+    }
+  },
+  "combined_sha256": "aa619d5e2d7864d1f10867e7c252ca294d94edfcb904b6b92d18eb4ca0ee4623"
+}

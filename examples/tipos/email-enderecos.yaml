@@ -1,0 +1,25 @@
+# `email` com `name_column`, `unique: true`, `domains` customizados e
+# `invalid_ratio` (DD-01 A.3, "Endereço de e-mail"). O endereço deriva do
+# primeiro/último nome da coluna `nome` da mesma linha; `unique: true`
+# acrescenta o índice global da linha (base36) para garantir endereços
+# válidos distintos.
+#
+#   uv run dataipsum gen examples/tipos/email-enderecos.yaml -o <dir>
+version: 1
+name: email_enderecos
+seed: 4
+tables:
+  - name: clientes
+    rows: 5000
+    primary_key: {columns: [id], strategy: sequence, start: 1}
+    columns:
+      - {name: id, type: int}
+      - {name: nome, type: nome_proprio, max_length: 120}
+      - name: email
+        type: email
+        max_length: 254
+        invalid_ratio: 0.05
+        params:
+          name_column: nome
+          unique: true
+          domains: [example.com, example.net]

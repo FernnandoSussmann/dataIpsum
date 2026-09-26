@@ -1,0 +1,32 @@
+# `on_failure: placeholder` (DD-01 §C.7, §C.3.7): só ativo porque o usuário pediu explicitamente
+# na coluna. Com o provedor indisponível, o chunk é gravado com texto lorem determinístico,
+# `is_placeholder = true` e `status: pending_llm`; `dataipsum resume` troca pelo texto real,
+# atomicamente, e zera `is_placeholder`.
+#
+#   # provedor "local" fora do ar (ninguém escutando em :11434):
+#   uv run dataipsum gen examples/llm/falha-placeholder.yaml -o /tmp/saida-placeholder
+#   # confirme: arquivos existem, is_placeholder=true, status pending_llm no manifesto
+#
+#   # suba o provedor de verdade e rode examples/llm/resume.sh
+version: 1
+name: falha_placeholder
+seed: 42
+llm:
+  default_provider: local
+  providers:
+    local: {kind: ollama, base_url: http://localhost:11434, model: llama3.1:8b}
+
+tables:
+  - name: contratos
+    rows: 50
+    primary_key: {columns: [id], strategy: sequence, start: 1}
+    columns:
+      - {name: id, type: int}
+      - name: clausula
+        type: llm_contrato
+        max_length: 600
+        params:
+          provider: local
+          mode: unique
+          toxicity: block
+          on_failure: placeholder

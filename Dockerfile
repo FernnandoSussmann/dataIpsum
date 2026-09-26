@@ -51,6 +51,29 @@ RUN set -eu; \
     fi; \
     uv sync --frozen --no-dev --no-editable --no-install-project $extra_flags
 
+# --- llm.build.dockerfile ---
+# Trilha C (DD-01, llm): cache de modelos gravável para o classificador de toxicidade
+# (DD-01 §C.10). `TORCH_HOME`/`HF_HOME` apontam para o mesmo diretório de `DATAIPSUM_MODEL_CACHE`
+# porque o Detoxify baixa o checkpoint via `torch.hub` e o tokenizer via Hugging Face.
+ARG PRELOAD_TOXICITY=0
+
+ENV DATAIPSUM_MODEL_CACHE=/var/cache/dataipsum/models \
+    TORCH_HOME=/var/cache/dataipsum/models \
+    HF_HOME=/var/cache/dataipsum/models
+
+# O diretório é criado sempre (para o `COPY --from=build` do fragmento de runtime nunca falhar
+# por origem ausente); o download só acontece com `PRELOAD_TOXICITY=1` e `toxicity` em `EXTRAS`
+# (o pacote `detoxify` já foi instalado pelo `uv sync` genérico do template, antes deste ponto).
+# hadolint ignore=SC2086
+RUN set -eu; \
+    mkdir -p "$DATAIPSUM_MODEL_CACHE"; \
+    case ",$EXTRAS," in \
+        *,toxicity,*) has_toxicity=1 ;; \
+        *) has_toxicity=0 ;; \
+    esac; \
+    if [ "$PRELOAD_TOXICITY" = "1" ] && [ "$has_toxicity" = "1" ]; then \
+        .venv/bin/python -c "from detoxify import Detoxify; Detoxify('multilingual')"; \
+    fi
 
 # Só agora o código entra na imagem: mudanças em `src/` não invalidam o cache de dependências.
 COPY src/ src/
@@ -89,6 +112,27 @@ ENV PATH=/app/.venv/bin:$PATH \
 
 WORKDIR /work
 
+# --- llm.runtime.dockerfile ---
+# Trilha C (DD-01, llm): copia o cache de modelos pré-baixado (se houver) e garante que o
+# diretório seja gravável pelo usuário 10001 mesmo com rootfs `read_only` (DD-01 §C.10).
+COPY --from=build /var/cache/dataipsum/models /var/cache/dataipsum/models
+
+ENV DATAIPSUM_MODEL_CACHE=/var/cache/dataipsum/models \
+    TORCH_HOME=/var/cache/dataipsum/models \
+    HF_HOME=/var/cache/dataipsum/models
+
+RUN chown -R 10001:10001 /var/cache/dataipsum/models
+
+# --- execucao.runtime.dockerfile ---
+# Trilha D (DD-01, execucao): DD-01 §D.10.
+#
+# Desliga a telemetria de uso do Ray (evita chamada de rede não solicitada, mesmo em
+# imagens sem EXTRAS=ray: o ENV não tem custo e vale para o worker Ray, que roda a
+# mesma imagem trocando só o ENTRYPOINT, sem EXTRAS=ray mudar nada aqui).
+ENV RAY_USAGE_STATS_ENABLED=0
+
+# DATAIPSUM_CPU_MAX/DATAIPSUM_MEM_MAX (DD-01 §D.3.4, DD-00 §3.8) são lidos por env em
+# runtime; a imagem não fixa valores (nenhum ENV para eles aqui, de propósito).
 
 USER 10001
 

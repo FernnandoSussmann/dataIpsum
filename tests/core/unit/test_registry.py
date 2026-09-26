@@ -63,8 +63,31 @@ def test_nome_desconhecido_gera_erro_com_sugestao() -> None:
 def test_register_builtins_chama_register_dos_pacotes_em_ordem() -> None:
     registry = Registry()
     register_builtins(registry)
-    assert registry.generators == {}
+    # `types` (17 geradores) e `relations` (`ref`) já registram; `sinks` ainda
+    # não (DD-02, gap pré-existente fora do escopo do DD-01) — ver
+    # tests/core/unit/test_trilha_skeletons.py para a lista completa por pacote.
+    assert set(registry.generators) == {
+        "string",
+        "char",
+        "int",
+        "float",
+        "decimal",
+        "boolean",
+        "date",
+        "time",
+        "timestamp",
+        "uuid",
+        "json",
+        "array",
+        "cpf",
+        "rg",
+        "cartao_credito",
+        "nome_proprio",
+        "email",
+        "ref",
+    }
     assert registry.sinks == {}
+    assert "pt_BR" in registry.locales
 
 
 def test_resolve_allowed_plugins_sem_env_nao_libera_nada() -> None:

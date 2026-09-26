@@ -1,0 +1,18 @@
+# `invalid_ratio` em cpf, rg e cartao_credito (DD-01 A.3): só esses três
+# (e `email`) declaram `supports_invalid`. Os inválidos são garantidamente
+# inválidos (dígito verificador/Luhn errado), úteis para testar pipelines de
+# validação a jusante.
+#
+#   uv run dataipsum gen examples/tipos/documentos-invalidos.yaml -o <dir>
+version: 1
+name: documentos_invalidos
+seed: 3
+tables:
+  - name: documentos
+    rows: 10000
+    primary_key: {columns: [id], strategy: sequence, start: 1}
+    columns:
+      - {name: id, type: int}
+      - {name: cpf, type: cpf, format: unmasked, invalid_ratio: 0.1}
+      - {name: rg, type: rg, format: unmasked, invalid_ratio: 0.1}
+      - {name: cartao, type: cartao_credito, format: unmasked, invalid_ratio: 0.1}

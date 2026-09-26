@@ -1,0 +1,28 @@
+# `brands`, `weights` e `extra_bins` de `cartao_credito` (DD-01 A.3). As
+# bandeiras e BINs padrão ficam em `src/dataipsum/types/data/bins.yaml`.
+#
+#   uv run dataipsum gen examples/tipos/cartoes-bandeiras.yaml -o <dir>
+version: 1
+name: cartoes_bandeiras
+seed: 6
+tables:
+  - name: pagamentos
+    rows: 5000
+    primary_key: {columns: [id], strategy: sequence, start: 1}
+    columns:
+      - {name: id, type: int}
+      # só visa e amex, com visa favorecida (85% / 15%)
+      - name: cartao_principal
+        type: cartao_credito
+        format: unmasked
+        params:
+          brands: [visa, amex]
+          weights: [0.85, 0.15]
+      # bandeira própria via BIN extra (não faz parte do bins.yaml padrão)
+      - name: cartao_private_label
+        type: cartao_credito
+        format: unmasked
+        params:
+          brands: [loja_parceira]
+          extra_bins:
+            - {brand: loja_parceira, prefix: "987654", length: 16}

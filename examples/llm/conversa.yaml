@@ -1,0 +1,47 @@
+# Thread com JSON estruturado e fallback (DD-01 §C.7, §C.3.8): `dataipsum` tenta uma chamada
+# só, pedindo `{"mensagens": [{"seq": int, "texto": str}]}` com N itens; se o provedor não
+# devolver JSON válido (após 1 nova tentativa), cai para geração mensagem a mensagem, com o
+# histórico das últimas 20 mensagens (até 8 KiB). `thread.llm` aceita os mesmos campos de uma
+# coluna LLM, exceto `mode`/`pool_size` (threads usam sempre `unique`).
+version: 1
+name: conversa_suporte
+seed: 42
+llm:
+  default_provider: local
+  providers:
+    local: {kind: ollama, base_url: http://localhost:11434, model: llama3.1:8b}
+
+tables:
+  - name: usuarios
+    rows: 30
+    primary_key: {columns: [id], strategy: sequence, start: 1}
+    columns:
+      - {name: id, type: int}
+      - {name: nome, type: nome_proprio, max_length: 120}
+
+  - name: pedidos
+    rows: 15
+    primary_key: {columns: [id], strategy: sequence, start: 1}
+    columns:
+      - {name: id, type: int}
+      - {name: numero, type: string, max_length: 20}
+
+  - name: mensagens
+    primary_key: {columns: [id], strategy: sequence}
+    rows_from:
+      via: pedido_id
+      relation: thread
+      cardinality: {range: {min: 4, max: 6}}
+    thread:
+      participants: {table: usuarios, count: 2, label_column: nome}
+      start: {min: "2025-01-01T00:00:00Z", max: "2025-06-01T00:00:00Z"}
+      gap_seconds: {min: 30, max: 3600}
+      llm:
+        provider: local
+        prompt: "Conversa de suporte sobre o pedido {pedido_id.numero}, entre cliente e atendente."
+        toxicity: block
+        on_failure: pending
+        max_length: 280
+    columns:
+      - {name: id, type: int}
+      - {name: pedido_id, type: ref, params: {table: pedidos}}
