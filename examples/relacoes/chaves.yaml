@@ -1,0 +1,36 @@
+# As 3 estratégias de PK usáveis em tabela raiz (DD-01 §B.3.1). `composite`
+# só existe em `many_to_many` (ver `muitos-para-muitos.yaml`).
+#
+#   uv run python -c "
+#   from dataipsum import load_schema
+#   from dataipsum.relations import RelationsPlanner
+#   import numpy as np
+#   schema = load_schema('examples/relacoes/chaves.yaml')
+#   planner = RelationsPlanner()
+#   plan = planner.plan(schema, seed=schema.seed, chunk_size=schema.chunk_size)
+#   print(planner.pk_at('sequencial', np.arange(5)).to_pylist())    # 100, 110, 120, ...
+#   print(planner.pk_at('embaralhada', np.arange(5)).to_pylist())   # únicos, fora de ordem
+#   print(planner.pk_at('uuid', np.arange(5)).to_pylist())          # uuid v4 válidos
+#   "
+version: 1
+name: chaves
+seed: 5
+chunk_size: 1000
+tables:
+  - name: sequencial
+    rows: 500
+    primary_key: {columns: [id], strategy: sequence, start: 100, step: 10}
+    columns:
+      - {name: id, type: int}
+
+  - name: embaralhada
+    rows: 500
+    primary_key: {columns: [id], strategy: seeded_int, start: 1}
+    columns:
+      - {name: id, type: int}
+
+  - name: uuid
+    rows: 500
+    primary_key: {columns: [id], strategy: seeded_uuid}
+    columns:
+      - {name: id, type: uuid}

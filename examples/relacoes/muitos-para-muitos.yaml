@@ -1,0 +1,43 @@
+# N:N via tabela ponte (DD-01 §B.3.5, B-04): "pedido_produto" tem PK
+# `composite` (pedido_id, produto_id). Para cada pedido, os produtos
+# escolhidos são distintos (permutação Feistel sem reposição), então o par
+# nunca se repete.
+#
+#   uv run python -c "
+#   from dataipsum import load_schema
+#   from dataipsum.relations import RelationsPlanner
+#   import numpy as np
+#   schema = load_schema('examples/relacoes/muitos-para-muitos.yaml')
+#   planner = RelationsPlanner()
+#   plan = planner.plan(schema, seed=schema.seed, chunk_size=schema.chunk_size)
+#   n = plan.tables['pedido_produto'].rows
+#   pares = planner.pk_at('pedido_produto', np.arange(n)).to_pylist()
+#   assert len({(p['pedido_id'], p['produto_id']) for p in pares}) == n
+#   "
+version: 1
+name: muitos_para_muitos
+seed: 3
+chunk_size: 1000
+tables:
+  - name: pedidos
+    rows: 50
+    primary_key: {columns: [id], strategy: sequence, start: 1}
+    columns:
+      - {name: id, type: int}
+
+  - name: produtos
+    rows: 30
+    primary_key: {columns: [id], strategy: sequence, start: 1}
+    columns:
+      - {name: id, type: int}
+
+  - name: pedido_produto
+    rows_from:
+      via: pedido_id
+      relation: many_to_many
+      pair: produto_id
+      cardinality: {range: {min: 1, max: 5}}
+    primary_key: {columns: [pedido_id, produto_id], strategy: composite}
+    columns:
+      - {name: pedido_id, type: ref, params: {table: pedidos}, null_ratio: 0.0}
+      - {name: produto_id, type: ref, params: {table: produtos}, null_ratio: 0.0}
